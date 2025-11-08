@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { TripAssistant } from "@/components/TripAssistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -175,6 +176,42 @@ export default function TripForm() {
     }
   };
 
+  const handleExtractedData = (extractedData: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...(extractedData.trip_name && { trip_name: extractedData.trip_name }),
+      ...(extractedData.city && { city: extractedData.city }),
+      ...(extractedData.country && { country: extractedData.country }),
+      ...(extractedData.beginning_date && { beginning_date: extractedData.beginning_date }),
+      ...(extractedData.ending_date && { ending_date: extractedData.ending_date }),
+      ...(extractedData.client_or_event && { client_or_event: extractedData.client_or_event }),
+      ...(extractedData.fee !== undefined && { fee: extractedData.fee.toString() }),
+      ...(extractedData.expenses_reimbursable !== undefined && { expenses_reimbursable: extractedData.expenses_reimbursable }),
+      ...(extractedData.flight_needed !== undefined && { flight_needed: extractedData.flight_needed }),
+      ...(extractedData.airline && { airline: extractedData.airline }),
+      ...(extractedData.flight_number && { flight_number: extractedData.flight_number }),
+      ...(extractedData.departure_time && { departure_time: new Date(extractedData.departure_time).toISOString().slice(0, 16) }),
+      ...(extractedData.arrival_time && { arrival_time: new Date(extractedData.arrival_time).toISOString().slice(0, 16) }),
+      ...(extractedData.flight_confirmation && { flight_confirmation: extractedData.flight_confirmation }),
+      ...(extractedData.hotel_needed !== undefined && { hotel_needed: extractedData.hotel_needed }),
+      ...(extractedData.hotel_name && { hotel_name: extractedData.hotel_name }),
+      ...(extractedData.hotel_address && { hotel_address: extractedData.hotel_address }),
+      ...(extractedData.hotel_booking_service && { hotel_booking_service: extractedData.hotel_booking_service }),
+      ...(extractedData.hotel_checkin_date && { hotel_checkin_date: extractedData.hotel_checkin_date }),
+      ...(extractedData.hotel_checkout_date && { hotel_checkout_date: extractedData.hotel_checkout_date }),
+      ...(extractedData.hotel_confirmation && { hotel_confirmation: extractedData.hotel_confirmation }),
+      ...(extractedData.car_needed !== undefined && { car_needed: extractedData.car_needed }),
+      ...(extractedData.car_rental_company && { car_rental_company: extractedData.car_rental_company }),
+      ...(extractedData.car_pickup_location && { car_pickup_location: extractedData.car_pickup_location }),
+      ...(extractedData.car_dropoff_location && { car_dropoff_location: extractedData.car_dropoff_location }),
+      ...(extractedData.car_booking_service && { car_booking_service: extractedData.car_booking_service }),
+      ...(extractedData.car_pickup_datetime && { car_pickup_datetime: new Date(extractedData.car_pickup_datetime).toISOString().slice(0, 16) }),
+      ...(extractedData.car_dropoff_datetime && { car_dropoff_datetime: new Date(extractedData.car_dropoff_datetime).toISOString().slice(0, 16) }),
+      ...(extractedData.car_confirmation && { car_confirmation: extractedData.car_confirmation }),
+      ...(extractedData.internal_notes && { internal_notes: extractedData.internal_notes }),
+    }));
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -183,6 +220,8 @@ export default function TripForm() {
         </Button>
         <h2 className="text-3xl font-bold">{isEditMode ? "Edit Trip" : "Create New Trip"}</h2>
       </div>
+
+      {!isEditMode && <TripAssistant onDataExtracted={handleExtractedData} />}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="p-6 space-y-6">
