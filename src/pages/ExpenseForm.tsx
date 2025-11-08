@@ -1,0 +1,283 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function ExpenseForm() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tripId = searchParams.get("tripId");
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(false);
+  const [trips, setTrips] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    trip_id: tripId || "",
+    date: new Date().toISOString().split('T')[0],
+    merchant: "",
+    category: "Meal" as "Car" | "Entertainment" | "Fees" | "Flight" | "Hotel" | "Meal" | "Other" | "Rideshare/Taxi" | "Supplies",
+    amount: "",
+    payment_method: "Personal Card" as "Personal Card" | "Business Card" | "Company Card" | "Cash" | "Other",
+    currency: "USD",
+    description: "",
+    reimbursable: true,
+    reimbursed_status: "Not submitted" as "Not submitted" | "Submitted" | "Partially reimbursed" | "Fully reimbursed",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchTrips();
+    }
+  }, [user]);
+
+  const fetchTrips = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("trips")
+        .select("trip_id, trip_name, beginning_date, ending_date")
+        .order("beginning_date", { ascending: false });
+
+      if (error) throw error;
+      setTrips(data || []);
+    } catch (error) {
+      console.error("Error fetching trips:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const expenseData = {
+        ...formData,
+        amount: parseFloat(formData.amount),
+        user_id: user.id,
+      };
+
+      const { error } = await supabase
+        .from("expenses")
+        .insert([expenseData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Expense created successfully",
+      });
+
+      if (formData.trip_id) {
+        navigate(`/trips/${formData.trip_id}`);
+      } else {
+        navigate("/expenses");
+      }
+    } catch (error) {
+      console.error("Error saving expense:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save expense",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <h2 className="text-3xl font-bold">Add Expense</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="p-6 space-y-6">
+          <div className="space-y-2">
+            <h3 className="text-lg font-semibold">Expense Details</h3>
+          </div>
+
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="trip_id">Trip *</Label>
+              <Select
+                value={formData.trip_id}
+                onValueChange={(value) => setFormData({ ...formData, trip_id: value })}
+                required
+              >
+                <SelectTrigger id="trip_id">
+                  <SelectValue placeholder="Select a trip" />
+                </SelectTrigger>
+                <SelectContent>
+                  {trips.map((trip) => (
+                    <SelectItem key={trip.trip_id} value={trip.trip_id}>
+                      {trip.trip_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="merchant">Merchant *</Label>
+                <Input
+                  id="merchant"
+                  value={formData.merchant}
+                  onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value: any) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Meal">Meal</SelectItem>
+                    <SelectItem value="Flight">Flight</SelectItem>
+                    <SelectItem value="Hotel">Hotel</SelectItem>
+                    <SelectItem value="Car">Car</SelectItem>
+                    <SelectItem value="Rideshare/Taxi">Rideshare/Taxi</SelectItem>
+                    <SelectItem value="Entertainment">Entertainment</SelectItem>
+                    <SelectItem value="Supplies">Supplies</SelectItem>
+                    <SelectItem value="Fees">Fees</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Payment Method *</Label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value: any) => setFormData({ ...formData, payment_method: value })}
+              >
+                <SelectTrigger id="payment_method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Personal Card">Personal Card</SelectItem>
+                  <SelectItem value="Business Card">Business Card</SelectItem>
+                  <SelectItem value="Company Card">Company Card</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Reimbursable?</Label>
+              <RadioGroup
+                value={formData.reimbursable ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, reimbursable: value === "yes" })}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="reimbursable_yes" />
+                  <Label htmlFor="reimbursable_yes" className="font-normal cursor-pointer">Yes</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="reimbursable_no" />
+                  <Label htmlFor="reimbursable_no" className="font-normal cursor-pointer">No</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {formData.reimbursable && (
+              <div className="space-y-2">
+                <Label htmlFor="reimbursed_status">Reimbursement Status</Label>
+                <Select
+                  value={formData.reimbursed_status}
+                  onValueChange={(value: any) => setFormData({ ...formData, reimbursed_status: value })}
+                >
+                  <SelectTrigger id="reimbursed_status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Not submitted">Not Submitted</SelectItem>
+                    <SelectItem value="Submitted">Submitted</SelectItem>
+                    <SelectItem value="Partially reimbursed">Partially Reimbursed</SelectItem>
+                    <SelectItem value="Fully reimbursed">Fully Reimbursed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Save Expense"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}

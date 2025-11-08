@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { TripsDashboard } from "@/components/TripsDashboard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,8 @@ export default function Trips() {
 
   return (
     <div className="space-y-6">
+      <TripsDashboard />
+      
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold">My Trips</h2>

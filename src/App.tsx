@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import TripForm from "./pages/TripForm";
+import ItineraryForm from "./pages/ItineraryForm";
+import ExpenseForm from "./pages/ExpenseForm";
 import QuickAdd from "./pages/QuickAdd";
 import Expenses from "./pages/Expenses";
 import Settings from "./pages/Settings";
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
+            <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+            <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
             <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
             <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
