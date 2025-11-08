@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Upload, Sparkles, X, Loader2 } from "lucide-react";
+import { Upload, Sparkles, X, Loader2, FileText, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TripAssistantProps {
@@ -13,50 +13,102 @@ interface TripAssistantProps {
 export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
   const [message, setMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<{ file: File; url: string; type: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const files: File[] = [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        
+        if (item.type.indexOf('image') !== -1) {
+          const file = item.getAsFile();
+          if (file) {
+            files.push(file);
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        e.preventDefault();
+        addFiles(files);
+        toast({
+          title: "Images pasted",
+          description: `${files.length} image(s) added`,
+        });
+      }
+    };
+
+    textarea.addEventListener('paste', handlePaste);
+    return () => textarea.removeEventListener('paste', handlePaste);
+  }, []);
+
+  const addFiles = (newFiles: File[]) => {
+    const validFiles = newFiles.filter(file => {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 20MB`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setSelectedFiles(prev => [...prev, ...validFiles]);
+
+    // Create previews for images
+    validFiles.forEach(file => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreviewUrls(prev => [
+            ...prev,
+            { file, url: e.target?.result as string, type: 'image' }
+          ]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setPreviewUrls(prev => [
+          ...prev,
+          { file, url: '', type: 'document' }
+        ]);
+      }
+    });
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file size (max 20MB)
-    if (file.size > 20 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select a file smaller than 20MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setSelectedFile(file);
-
-    // Create preview for images
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => setPreviewUrl(e.target?.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setPreviewUrl(null);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      addFiles(files);
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
+  const removeFile = (fileToRemove: File) => {
+    setSelectedFiles(prev => prev.filter(f => f !== fileToRemove));
+    setPreviewUrls(prev => prev.filter(p => p.file !== fileToRemove));
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleExtract = async () => {
-    if (!message.trim() && !selectedFile) {
+    if (!message.trim() && selectedFiles.length === 0) {
       toast({
         title: "Input required",
-        description: "Please enter trip details or upload a document",
+        description: "Please enter trip details or upload documents",
         variant: "destructive",
       });
       return;
@@ -65,22 +117,25 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
     setIsProcessing(true);
 
     try {
-      let imageData = null;
+      const imageDataArray: string[] = [];
 
-      // Convert file to base64 if it's an image
-      if (selectedFile && selectedFile.type.startsWith("image/")) {
-        const reader = new FileReader();
-        imageData = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(selectedFile);
-        });
+      // Convert all image files to base64
+      for (const file of selectedFiles) {
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          const imageData = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          imageDataArray.push(imageData);
+        }
       }
 
       const { data, error } = await supabase.functions.invoke("extract-trip-info", {
         body: {
           message: message.trim(),
-          imageData,
+          images: imageDataArray,
         },
       });
 
@@ -102,7 +157,8 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
           description: "Trip information extracted and filled into the form",
         });
         setMessage("");
-        removeFile();
+        setSelectedFiles([]);
+        setPreviewUrls([]);
       }
     } catch (error) {
       console.error("Error extracting trip info:", error);
@@ -125,41 +181,65 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
         <div className="flex-1">
           <h3 className="font-semibold text-lg">AI Trip Assistant</h3>
           <p className="text-sm text-muted-foreground">
-            Paste your trip details, booking confirmation, or upload an image/document, and I'll extract the information
-            for you.
+            Paste your trip details, booking confirmation, or upload/paste images and documents. I'll extract all the information for you.
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
         <Textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Example: I'm flying to San Francisco on United Airlines flight UA 123 on March 15th, 2025, returning on March 20th. Staying at the Marriott Downtown..."
+          placeholder="Example: I'm flying to San Francisco on United Airlines flight UA 123 on March 15th, 2025, returning on March 20th. Staying at the Marriott Downtown...
+
+You can also paste images directly here (Ctrl+V / Cmd+V)"
           rows={4}
           className="resize-none"
           disabled={isProcessing}
         />
 
-        {selectedFile && (
-          <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
-            {previewUrl && (
-              <img src={previewUrl} alt="Preview" className="w-16 h-16 object-cover rounded" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{selectedFile.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={removeFile}
-              disabled={isProcessing}
-            >
-              <X className="w-4 h-4" />
-            </Button>
+        {previewUrls.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {previewUrls.map((preview, index) => (
+              <div key={index} className="relative group">
+                {preview.type === 'image' ? (
+                  <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted">
+                    <img 
+                      src={preview.url} 
+                      alt={`Preview ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                      onClick={() => removeFile(preview.file)}
+                      disabled={isProcessing}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative aspect-video rounded-lg overflow-hidden border bg-muted flex flex-col items-center justify-center p-3">
+                    <FileText className="w-8 h-8 text-muted-foreground mb-2" />
+                    <p className="text-xs text-center truncate w-full">{preview.file.name}</p>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                      onClick={() => removeFile(preview.file)}
+                      disabled={isProcessing}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1 truncate">
+                  {(preview.file.size / 1024).toFixed(1)} KB
+                </p>
+              </div>
+            ))}
           </div>
         )}
 
@@ -171,6 +251,7 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
             onChange={handleFileSelect}
             className="hidden"
             disabled={isProcessing}
+            multiple
           />
           <Button
             variant="outline"
@@ -179,11 +260,11 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
             className="gap-2"
           >
             <Upload className="w-4 h-4" />
-            Upload Document
+            Upload Files
           </Button>
           <Button
             onClick={handleExtract}
-            disabled={isProcessing || (!message.trim() && !selectedFile)}
+            disabled={isProcessing || (!message.trim() && selectedFiles.length === 0)}
             className="gap-2 flex-1"
           >
             {isProcessing ? (

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, imageData } = await req.json();
+    const { message, images } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -21,18 +21,27 @@ serve(async (req) => {
     const messages: any[] = [
       {
         role: "system",
-        content: "You are a helpful assistant that extracts trip information from user messages or images. Extract as much relevant information as possible including dates, locations, flight details, hotel information, car rental details, fees, and client/event names. If information is not provided, omit those fields from your response."
+        content: "You are a helpful assistant that extracts trip information from user messages or images. Extract as much relevant information as possible including dates, locations, flight details, hotel information, car rental details, fees, and client/event names. If information is not provided, omit those fields from your response. When multiple images are provided, combine all the information you find across all images."
       }
     ];
 
-    // Add user message with optional image
-    if (imageData) {
+    // Build user message with text and multiple images
+    if (images && images.length > 0) {
+      const content: any[] = [
+        { type: "text", text: message || "Please extract trip information from these images." }
+      ];
+      
+      // Add all images to the message
+      images.forEach((imageData: string) => {
+        content.push({
+          type: "image_url",
+          image_url: { url: imageData }
+        });
+      });
+
       messages.push({
         role: "user",
-        content: [
-          { type: "text", text: message || "Please extract trip information from this image." },
-          { type: "image_url", image_url: { url: imageData } }
-        ]
+        content
       });
     } else {
       messages.push({
