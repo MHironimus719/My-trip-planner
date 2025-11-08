@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ExpenseForm() {
   const navigate = useNavigate();
+  const { tripId: urlTripId } = useParams();
   const [searchParams] = useSearchParams();
-  const tripId = searchParams.get("tripId");
+  const tripId = urlTripId || searchParams.get("tripId");
   const { user } = useAuth();
   const { toast } = useToast();
 

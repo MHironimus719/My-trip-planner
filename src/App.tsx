@@ -32,6 +32,8 @@ const App = () => (
             <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
+            <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+            <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
             <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
             <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
             <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
