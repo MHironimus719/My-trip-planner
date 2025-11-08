@@ -15,6 +15,7 @@ import ExpenseForm from "./pages/ExpenseForm";
 import QuickAdd from "./pages/QuickAdd";
 import Expenses from "./pages/Expenses";
 import Settings from "./pages/Settings";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/install" element={<Install />} />
             <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
             <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
