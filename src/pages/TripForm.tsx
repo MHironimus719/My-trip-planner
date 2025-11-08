@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ export default function TripForm() {
     ending_date: "",
     client_or_event: "",
     fee: "0",
+    expenses_reimbursable: true,
     expenses_reimbursed_status: "No" as "No" | "Partial" | "Yes",
     invoice_sent: false,
     invoice_number: "",
@@ -69,6 +71,7 @@ export default function TripForm() {
           ending_date: data.ending_date || "",
           client_or_event: data.client_or_event || "",
           fee: data.fee?.toString() || "0",
+          expenses_reimbursable: data.expenses_reimbursable ?? true,
           expenses_reimbursed_status: data.expenses_reimbursed_status || "No",
           invoice_sent: data.invoice_sent || false,
           invoice_number: data.invoice_number || "",
@@ -232,6 +235,24 @@ export default function TripForm() {
                 value={formData.fee}
                 onChange={(e) => setFormData({ ...formData, fee: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Expenses Reimbursable?</Label>
+              <RadioGroup
+                value={formData.expenses_reimbursable ? "yes" : "no"}
+                onValueChange={(value) => setFormData({ ...formData, expenses_reimbursable: value === "yes" })}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="expenses_reimbursable_yes" />
+                  <Label htmlFor="expenses_reimbursable_yes" className="font-normal cursor-pointer">Yes</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="expenses_reimbursable_no" />
+                  <Label htmlFor="expenses_reimbursable_no" className="font-normal cursor-pointer">No</Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
         </Card>

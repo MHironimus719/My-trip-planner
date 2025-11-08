@@ -194,6 +194,7 @@ export type Database = {
           created_at: string | null
           departure_time: string | null
           ending_date: string
+          expenses_reimbursable: boolean | null
           expenses_reimbursed_status:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
@@ -224,6 +225,7 @@ export type Database = {
           created_at?: string | null
           departure_time?: string | null
           ending_date: string
+          expenses_reimbursable?: boolean | null
           expenses_reimbursed_status?:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
@@ -254,6 +256,7 @@ export type Database = {
           created_at?: string | null
           departure_time?: string | null
           ending_date?: string
+          expenses_reimbursable?: boolean | null
           expenses_reimbursed_status?:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
