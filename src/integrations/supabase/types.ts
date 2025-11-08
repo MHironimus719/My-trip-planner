@@ -183,6 +183,8 @@ export type Database = {
       }
       trips: {
         Row: {
+          airline: string | null
+          arrival_time: string | null
           beginning_date: string
           car_details: string | null
           car_needed: boolean | null
@@ -190,13 +192,15 @@ export type Database = {
           client_or_event: string | null
           country: string | null
           created_at: string | null
+          departure_time: string | null
           ending_date: string
           expenses_reimbursed_status:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
           fee: number | null
-          flight_details: string | null
+          flight_confirmation: string | null
           flight_needed: boolean | null
+          flight_number: string | null
           hotel_details: string | null
           hotel_needed: boolean | null
           internal_notes: string | null
@@ -209,6 +213,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          airline?: string | null
+          arrival_time?: string | null
           beginning_date: string
           car_details?: string | null
           car_needed?: boolean | null
@@ -216,13 +222,15 @@ export type Database = {
           client_or_event?: string | null
           country?: string | null
           created_at?: string | null
+          departure_time?: string | null
           ending_date: string
           expenses_reimbursed_status?:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
           fee?: number | null
-          flight_details?: string | null
+          flight_confirmation?: string | null
           flight_needed?: boolean | null
+          flight_number?: string | null
           hotel_details?: string | null
           hotel_needed?: boolean | null
           internal_notes?: string | null
@@ -235,6 +243,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          airline?: string | null
+          arrival_time?: string | null
           beginning_date?: string
           car_details?: string | null
           car_needed?: boolean | null
@@ -242,13 +252,15 @@ export type Database = {
           client_or_event?: string | null
           country?: string | null
           created_at?: string | null
+          departure_time?: string | null
           ending_date?: string
           expenses_reimbursed_status?:
             | Database["public"]["Enums"]["expense_reimbursed_status"]
             | null
           fee?: number | null
-          flight_details?: string | null
+          flight_confirmation?: string | null
           flight_needed?: boolean | null
+          flight_number?: string | null
           hotel_details?: string | null
           hotel_needed?: boolean | null
           internal_notes?: string | null

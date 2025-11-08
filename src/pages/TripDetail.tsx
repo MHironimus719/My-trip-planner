@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TripDetail() {
@@ -168,6 +168,47 @@ export default function TripDetail() {
               {trip.expenses_reimbursed_status === "No" && <Badge variant="secondary">Not Reimbursed</Badge>}
             </div>
           </Card>
+
+          {trip.flight_needed && (trip.airline || trip.flight_number) && (
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Plane className="w-5 h-5" />
+                <h3 className="text-lg font-semibold">Flight Information</h3>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {trip.airline && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Airline</div>
+                    <div className="font-medium">{trip.airline}</div>
+                  </div>
+                )}
+                {trip.flight_number && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Flight Number</div>
+                    <div className="font-medium">{trip.flight_number}</div>
+                  </div>
+                )}
+                {trip.departure_time && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Departure</div>
+                    <div className="font-medium">{format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
+                  </div>
+                )}
+                {trip.arrival_time && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Arrival</div>
+                    <div className="font-medium">{format(new Date(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
+                  </div>
+                )}
+                {trip.flight_confirmation && (
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-muted-foreground">Confirmation Number</div>
+                    <div className="font-medium">{trip.flight_confirmation}</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="itinerary" className="space-y-4">
