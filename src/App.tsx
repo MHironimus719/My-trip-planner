@@ -9,6 +9,7 @@ import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
+import TripForm from "./pages/TripForm";
 import QuickAdd from "./pages/QuickAdd";
 import Expenses from "./pages/Expenses";
 import Settings from "./pages/Settings";
@@ -26,6 +27,8 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
+            <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
+            <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
             <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
             <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
             <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
