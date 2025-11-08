@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ExpenseAssistant } from "@/components/ExpenseAssistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -96,6 +97,20 @@ export default function ExpenseForm() {
     }
   };
 
+  const handleExtractedData = (extractedData: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...(extractedData.merchant && { merchant: extractedData.merchant }),
+      ...(extractedData.amount !== undefined && { amount: extractedData.amount.toString() }),
+      ...(extractedData.date && { date: extractedData.date }),
+      ...(extractedData.category && { category: extractedData.category }),
+      ...(extractedData.payment_method && { payment_method: extractedData.payment_method }),
+      ...(extractedData.description && { description: extractedData.description }),
+      ...(extractedData.reimbursable !== undefined && { reimbursable: extractedData.reimbursable }),
+      ...(extractedData.currency && { currency: extractedData.currency }),
+    }));
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -104,6 +119,8 @@ export default function ExpenseForm() {
         </Button>
         <h2 className="text-3xl font-bold">Add Expense</h2>
       </div>
+
+      <ExpenseAssistant onDataExtracted={handleExtractedData} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="p-6 space-y-6">

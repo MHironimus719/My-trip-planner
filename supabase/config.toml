@@ -2,3 +2,6 @@ project_id = "cizxmudgvueofjzfttxo"
 
 [functions.extract-trip-info]
 verify_jwt = false
+
+[functions.extract-expense-info]
+verify_jwt = false
