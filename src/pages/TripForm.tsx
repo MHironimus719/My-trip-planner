@@ -41,9 +41,20 @@ export default function TripForm() {
     arrival_time: "",
     flight_confirmation: "",
     hotel_needed: false,
-    hotel_details: "",
+    hotel_name: "",
+    hotel_address: "",
+    hotel_booking_service: "",
+    hotel_checkin_date: "",
+    hotel_checkout_date: "",
+    hotel_confirmation: "",
     car_needed: false,
-    car_details: "",
+    car_rental_company: "",
+    car_pickup_location: "",
+    car_dropoff_location: "",
+    car_booking_service: "",
+    car_pickup_datetime: "",
+    car_dropoff_datetime: "",
+    car_confirmation: "",
     internal_notes: "",
   });
 
@@ -83,9 +94,20 @@ export default function TripForm() {
           arrival_time: data.arrival_time ? new Date(data.arrival_time).toISOString().slice(0, 16) : "",
           flight_confirmation: data.flight_confirmation || "",
           hotel_needed: data.hotel_needed || false,
-          hotel_details: data.hotel_details || "",
+          hotel_name: data.hotel_name || "",
+          hotel_address: data.hotel_address || "",
+          hotel_booking_service: data.hotel_booking_service || "",
+          hotel_checkin_date: data.hotel_checkin_date || "",
+          hotel_checkout_date: data.hotel_checkout_date || "",
+          hotel_confirmation: data.hotel_confirmation || "",
           car_needed: data.car_needed || false,
-          car_details: data.car_details || "",
+          car_rental_company: data.car_rental_company || "",
+          car_pickup_location: data.car_pickup_location || "",
+          car_dropoff_location: data.car_dropoff_location || "",
+          car_booking_service: data.car_booking_service || "",
+          car_pickup_datetime: data.car_pickup_datetime ? new Date(data.car_pickup_datetime).toISOString().slice(0, 16) : "",
+          car_dropoff_datetime: data.car_dropoff_datetime ? new Date(data.car_dropoff_datetime).toISOString().slice(0, 16) : "",
+          car_confirmation: data.car_confirmation || "",
           internal_notes: data.internal_notes || "",
         });
       }
@@ -110,6 +132,8 @@ export default function TripForm() {
         fee: parseFloat(formData.fee) || 0,
         departure_time: formData.departure_time ? new Date(formData.departure_time).toISOString() : null,
         arrival_time: formData.arrival_time ? new Date(formData.arrival_time).toISOString() : null,
+        car_pickup_datetime: formData.car_pickup_datetime ? new Date(formData.car_pickup_datetime).toISOString() : null,
+        car_dropoff_datetime: formData.car_dropoff_datetime ? new Date(formData.car_dropoff_datetime).toISOString() : null,
         user_id: user.id,
       };
 
@@ -387,15 +411,66 @@ export default function TripForm() {
             </div>
 
             {formData.hotel_needed && (
-              <div className="space-y-2">
-                <Label htmlFor="hotel_details">Hotel Details</Label>
-                <Textarea
-                  id="hotel_details"
-                  value={formData.hotel_details}
-                  onChange={(e) => setFormData({ ...formData, hotel_details: e.target.value })}
-                  placeholder="Hotel name, address, confirmation..."
-                  rows={3}
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="hotel_name">Hotel Name</Label>
+                  <Input
+                    id="hotel_name"
+                    value={formData.hotel_name}
+                    onChange={(e) => setFormData({ ...formData, hotel_name: e.target.value })}
+                    placeholder="e.g., Marriott Downtown"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hotel_booking_service">Booking Service</Label>
+                  <Input
+                    id="hotel_booking_service"
+                    value={formData.hotel_booking_service}
+                    onChange={(e) => setFormData({ ...formData, hotel_booking_service: e.target.value })}
+                    placeholder="e.g., Expedia, Direct"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="hotel_address">Address</Label>
+                  <Input
+                    id="hotel_address"
+                    value={formData.hotel_address}
+                    onChange={(e) => setFormData({ ...formData, hotel_address: e.target.value })}
+                    placeholder="Full address"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hotel_checkin_date">Check-in Date</Label>
+                  <Input
+                    id="hotel_checkin_date"
+                    type="date"
+                    value={formData.hotel_checkin_date}
+                    onChange={(e) => setFormData({ ...formData, hotel_checkin_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="hotel_checkout_date">Check-out Date</Label>
+                  <Input
+                    id="hotel_checkout_date"
+                    type="date"
+                    value={formData.hotel_checkout_date}
+                    onChange={(e) => setFormData({ ...formData, hotel_checkout_date: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="hotel_confirmation">Confirmation Number</Label>
+                  <Input
+                    id="hotel_confirmation"
+                    value={formData.hotel_confirmation}
+                    onChange={(e) => setFormData({ ...formData, hotel_confirmation: e.target.value })}
+                    placeholder="e.g., ABC123456"
+                  />
+                </div>
               </div>
             )}
 
@@ -409,15 +484,76 @@ export default function TripForm() {
             </div>
 
             {formData.car_needed && (
-              <div className="space-y-2">
-                <Label htmlFor="car_details">Car Rental Details</Label>
-                <Textarea
-                  id="car_details"
-                  value={formData.car_details}
-                  onChange={(e) => setFormData({ ...formData, car_details: e.target.value })}
-                  placeholder="Rental company, confirmation..."
-                  rows={3}
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="car_rental_company">Rental Company</Label>
+                  <Input
+                    id="car_rental_company"
+                    value={formData.car_rental_company}
+                    onChange={(e) => setFormData({ ...formData, car_rental_company: e.target.value })}
+                    placeholder="e.g., Enterprise, Hertz"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_booking_service">Booking Service</Label>
+                  <Input
+                    id="car_booking_service"
+                    value={formData.car_booking_service}
+                    onChange={(e) => setFormData({ ...formData, car_booking_service: e.target.value })}
+                    placeholder="e.g., Direct, Kayak"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_pickup_location">Pickup Location</Label>
+                  <Input
+                    id="car_pickup_location"
+                    value={formData.car_pickup_location}
+                    onChange={(e) => setFormData({ ...formData, car_pickup_location: e.target.value })}
+                    placeholder="Airport or address"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_dropoff_location">Drop-off Location</Label>
+                  <Input
+                    id="car_dropoff_location"
+                    value={formData.car_dropoff_location}
+                    onChange={(e) => setFormData({ ...formData, car_dropoff_location: e.target.value })}
+                    placeholder="Airport or address"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_pickup_datetime">Pickup Date & Time</Label>
+                  <Input
+                    id="car_pickup_datetime"
+                    type="datetime-local"
+                    value={formData.car_pickup_datetime}
+                    onChange={(e) => setFormData({ ...formData, car_pickup_datetime: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="car_dropoff_datetime">Drop-off Date & Time</Label>
+                  <Input
+                    id="car_dropoff_datetime"
+                    type="datetime-local"
+                    value={formData.car_dropoff_datetime}
+                    onChange={(e) => setFormData({ ...formData, car_dropoff_datetime: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="car_confirmation">Confirmation Number</Label>
+                  <Input
+                    id="car_confirmation"
+                    value={formData.car_confirmation}
+                    onChange={(e) => setFormData({ ...formData, car_confirmation: e.target.value })}
+                    placeholder="e.g., RES123456"
+                  />
+                </div>
               </div>
             )}
           </div>

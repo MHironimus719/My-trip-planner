@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TripDetail() {
@@ -204,6 +204,102 @@ export default function TripDetail() {
                   <div className="md:col-span-2">
                     <div className="text-sm text-muted-foreground">Confirmation Number</div>
                     <div className="font-medium">{trip.flight_confirmation}</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {trip.hotel_needed && trip.hotel_name && (
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Hotel className="w-5 h-5" />
+                <h3 className="text-lg font-semibold">Hotel Information</h3>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm text-muted-foreground">Hotel Name</div>
+                  <div className="font-medium">{trip.hotel_name}</div>
+                </div>
+                {trip.hotel_booking_service && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Booking Service</div>
+                    <div className="font-medium">{trip.hotel_booking_service}</div>
+                  </div>
+                )}
+                {trip.hotel_address && (
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-muted-foreground">Address</div>
+                    <div className="font-medium">{trip.hotel_address}</div>
+                  </div>
+                )}
+                {trip.hotel_checkin_date && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Check-in</div>
+                    <div className="font-medium">{format(new Date(trip.hotel_checkin_date), "MMM d, yyyy")}</div>
+                  </div>
+                )}
+                {trip.hotel_checkout_date && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Check-out</div>
+                    <div className="font-medium">{format(new Date(trip.hotel_checkout_date), "MMM d, yyyy")}</div>
+                  </div>
+                )}
+                {trip.hotel_confirmation && (
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-muted-foreground">Confirmation Number</div>
+                    <div className="font-medium">{trip.hotel_confirmation}</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {trip.car_needed && trip.car_rental_company && (
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Car className="w-5 h-5" />
+                <h3 className="text-lg font-semibold">Car Rental Information</h3>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm text-muted-foreground">Rental Company</div>
+                  <div className="font-medium">{trip.car_rental_company}</div>
+                </div>
+                {trip.car_booking_service && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Booking Service</div>
+                    <div className="font-medium">{trip.car_booking_service}</div>
+                  </div>
+                )}
+                {trip.car_pickup_location && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Pickup Location</div>
+                    <div className="font-medium">{trip.car_pickup_location}</div>
+                  </div>
+                )}
+                {trip.car_dropoff_location && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Drop-off Location</div>
+                    <div className="font-medium">{trip.car_dropoff_location}</div>
+                  </div>
+                )}
+                {trip.car_pickup_datetime && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Pickup</div>
+                    <div className="font-medium">{format(new Date(trip.car_pickup_datetime), "MMM d, yyyy h:mm a")}</div>
+                  </div>
+                )}
+                {trip.car_dropoff_datetime && (
+                  <div>
+                    <div className="text-sm text-muted-foreground">Drop-off</div>
+                    <div className="font-medium">{format(new Date(trip.car_dropoff_datetime), "MMM d, yyyy h:mm a")}</div>
+                  </div>
+                )}
+                {trip.car_confirmation && (
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-muted-foreground">Confirmation Number</div>
+                    <div className="font-medium">{trip.car_confirmation}</div>
                   </div>
                 )}
               </div>

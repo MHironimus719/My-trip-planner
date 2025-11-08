@@ -186,8 +186,14 @@ export type Database = {
           airline: string | null
           arrival_time: string | null
           beginning_date: string
-          car_details: string | null
+          car_booking_service: string | null
+          car_confirmation: string | null
+          car_dropoff_datetime: string | null
+          car_dropoff_location: string | null
           car_needed: boolean | null
+          car_pickup_datetime: string | null
+          car_pickup_location: string | null
+          car_rental_company: string | null
           city: string | null
           client_or_event: string | null
           country: string | null
@@ -202,7 +208,12 @@ export type Database = {
           flight_confirmation: string | null
           flight_needed: boolean | null
           flight_number: string | null
-          hotel_details: string | null
+          hotel_address: string | null
+          hotel_booking_service: string | null
+          hotel_checkin_date: string | null
+          hotel_checkout_date: string | null
+          hotel_confirmation: string | null
+          hotel_name: string | null
           hotel_needed: boolean | null
           internal_notes: string | null
           invoice_number: string | null
@@ -217,8 +228,14 @@ export type Database = {
           airline?: string | null
           arrival_time?: string | null
           beginning_date: string
-          car_details?: string | null
+          car_booking_service?: string | null
+          car_confirmation?: string | null
+          car_dropoff_datetime?: string | null
+          car_dropoff_location?: string | null
           car_needed?: boolean | null
+          car_pickup_datetime?: string | null
+          car_pickup_location?: string | null
+          car_rental_company?: string | null
           city?: string | null
           client_or_event?: string | null
           country?: string | null
@@ -233,7 +250,12 @@ export type Database = {
           flight_confirmation?: string | null
           flight_needed?: boolean | null
           flight_number?: string | null
-          hotel_details?: string | null
+          hotel_address?: string | null
+          hotel_booking_service?: string | null
+          hotel_checkin_date?: string | null
+          hotel_checkout_date?: string | null
+          hotel_confirmation?: string | null
+          hotel_name?: string | null
           hotel_needed?: boolean | null
           internal_notes?: string | null
           invoice_number?: string | null
@@ -248,8 +270,14 @@ export type Database = {
           airline?: string | null
           arrival_time?: string | null
           beginning_date?: string
-          car_details?: string | null
+          car_booking_service?: string | null
+          car_confirmation?: string | null
+          car_dropoff_datetime?: string | null
+          car_dropoff_location?: string | null
           car_needed?: boolean | null
+          car_pickup_datetime?: string | null
+          car_pickup_location?: string | null
+          car_rental_company?: string | null
           city?: string | null
           client_or_event?: string | null
           country?: string | null
@@ -264,7 +292,12 @@ export type Database = {
           flight_confirmation?: string | null
           flight_needed?: boolean | null
           flight_number?: string | null
-          hotel_details?: string | null
+          hotel_address?: string | null
+          hotel_booking_service?: string | null
+          hotel_checkin_date?: string | null
+          hotel_checkout_date?: string | null
+          hotel_confirmation?: string | null
+          hotel_name?: string | null
           hotel_needed?: boolean | null
           internal_notes?: string | null
           invoice_number?: string | null
