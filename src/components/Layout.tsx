@@ -1,12 +1,15 @@
 import { MobileNav } from "./MobileNav";
-import { LogOut, Plane, Settings, DollarSign, FileText } from "lucide-react";
+import { LogOut, Plane, Settings, DollarSign, FileText, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "./NavLink";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
+  const { tier, isAdmin } = useSubscription();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -52,17 +55,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <FileText className="w-4 h-4 inline mr-2" />
                 Reports
               </NavLink>
+              <NavLink
+                to="/pricing"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                activeClassName="text-primary-foreground bg-primary font-semibold"
+              >
+                <CreditCard className="w-4 h-4 inline mr-2" />
+                Pricing
+              </NavLink>
             </nav>
           </div>
           
-          <NavLink
-            to="/settings"
-            className="hidden md:flex gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            activeClassName="text-primary-foreground bg-primary font-semibold"
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </NavLink>
+          <div className="hidden md:flex items-center gap-3">
+            <Badge variant={tier === 'free' ? 'secondary' : 'default'} className="capitalize">
+              {isAdmin ? 'Admin' : tier}
+            </Badge>
+            <NavLink
+              to="/settings"
+              className="flex gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              activeClassName="text-primary-foreground bg-primary font-semibold"
+            >
+              <Settings className="w-4 h-4" />
+              Settings
+            </NavLink>
+          </div>
         </div>
       </header>
       

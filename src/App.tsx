@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
@@ -19,6 +20,7 @@ import QuickAdd from "./pages/QuickAdd";
 import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import Pricing from "./pages/Pricing";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
@@ -28,30 +30,33 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/reset-password" element={<ResetPassword />} />
-              <Route path="/install" element={<Install />} />
-              <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
-              <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
-              <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
-              <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
-              <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
-              <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
-              <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
-              <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
-              <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
-              <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
-              <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <SubscriptionProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
+                <Route path="/install" element={<Install />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
+                <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
+                <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
+                <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
+                <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+                <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
+                <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+                <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
+                <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
+                <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
+                <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -2,17 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { LogOut, Sun, Moon, Upload, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 export default function Settings() {
   const { signOut, user } = useAuth();
+  const { tier, isAdmin, subscriptionEnd, openCustomerPortal, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
@@ -134,6 +138,47 @@ export default function Settings() {
               </Button>
             </div>
           </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Subscription</h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-medium mb-2 block">Current Plan</Label>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant={tier === 'free' ? 'secondary' : 'default'} className="capitalize text-sm px-3 py-1">
+                {isAdmin ? 'Admin (Unlimited)' : tier}
+              </Badge>
+              {subscriptionEnd && !isAdmin && (
+                <span className="text-sm text-muted-foreground">
+                  Renews {new Date(subscriptionEnd).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
+          {!isAdmin && (
+            <div className="flex gap-2 pt-2">
+              {tier === 'free' ? (
+                <Button onClick={() => navigate('/pricing')}>
+                  Upgrade Plan
+                </Button>
+              ) : (
+                <Button 
+                  onClick={async () => {
+                    try {
+                      await openCustomerPortal();
+                    } catch (error) {
+                      sonnerToast.error('Failed to open portal. Please try again.');
+                    }
+                  }}
+                  disabled={subLoading}
+                >
+                  {subLoading ? 'Loading...' : 'Manage Subscription'}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 
