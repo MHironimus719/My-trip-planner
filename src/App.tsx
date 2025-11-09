@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Trips from "./pages/Trips";
 import TripDetail from "./pages/TripDetail";
 import TripForm from "./pages/TripForm";
@@ -33,6 +34,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/install" element={<Install />} />
               <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
               <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
