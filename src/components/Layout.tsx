@@ -1,5 +1,5 @@
 import { MobileNav } from "./MobileNav";
-import { LogOut, Plane, Settings, DollarSign } from "lucide-react";
+import { LogOut, Plane, Settings, DollarSign, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 to="/"
                 end
                 className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                activeClassName="text-primary bg-accent"
+                activeClassName="text-primary-foreground bg-primary font-semibold"
               >
                 <Plane className="w-4 h-4 inline mr-2" />
                 Trips
@@ -39,10 +39,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavLink
                 to="/expenses"
                 className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                activeClassName="text-primary bg-accent"
+                activeClassName="text-primary-foreground bg-primary font-semibold"
               >
                 <DollarSign className="w-4 h-4 inline mr-2" />
                 Expenses
+              </NavLink>
+              <NavLink
+                to="/reports"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                activeClassName="text-primary-foreground bg-primary font-semibold"
+              >
+                <FileText className="w-4 h-4 inline mr-2" />
+                Reports
               </NavLink>
             </nav>
           </div>
@@ -50,7 +58,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <NavLink
             to="/settings"
             className="hidden md:flex gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            activeClassName="text-primary bg-accent"
+            activeClassName="text-primary-foreground bg-primary font-semibold"
           >
             <Settings className="w-4 h-4" />
             Settings

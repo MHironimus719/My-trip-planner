@@ -1,5 +1,5 @@
 import { NavLink } from "./NavLink";
-import { Plane, DollarSign, Settings, Plus } from "lucide-react";
+import { Plane, DollarSign, Settings, Plus, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
@@ -19,10 +19,19 @@ export function MobileNav() {
         <NavLink
           to="/expenses"
           className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
-          activeClassName="text-primary"
+          activeClassName="text-primary font-semibold"
         >
           <DollarSign className="w-5 h-5" />
           <span className="text-xs">Expenses</span>
+        </NavLink>
+
+        <NavLink
+          to="/reports"
+          className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
+          activeClassName="text-primary font-semibold"
+        >
+          <FileText className="w-5 h-5" />
+          <span className="text-xs">Reports</span>
         </NavLink>
 
         <NavLink
@@ -37,7 +46,7 @@ export function MobileNav() {
         <NavLink
           to="/settings"
           className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
-          activeClassName="text-primary"
+          activeClassName="text-primary font-semibold"
         >
           <Settings className="w-5 h-5" />
           <span className="text-xs">Settings</span>
