@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
@@ -70,7 +70,7 @@ export default function Reports() {
       .from("profiles")
       .select("company_logo_url")
       .eq("id", user?.id)
-      .single();
+      .maybeSingle();
 
     if (data) {
       setProfile(data);

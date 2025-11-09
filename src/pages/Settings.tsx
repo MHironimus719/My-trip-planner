@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,7 +8,6 @@ import { useTheme } from "next-themes";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,7 +30,7 @@ export default function Settings() {
       .from("profiles")
       .select("company_logo_url")
       .eq("id", user?.id)
-      .single();
+      .maybeSingle();
 
     if (data?.company_logo_url) {
       setLogoUrl(data.company_logo_url);
