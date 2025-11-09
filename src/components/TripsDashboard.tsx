@@ -30,10 +30,10 @@ export function TripsDashboard() {
 
       if (tripsError) throw tripsError;
 
-      // Fetch all expenses
+      // Fetch all expenses with trip information
       const { data: expenses, error: expensesError } = await supabase
         .from("expenses")
-        .select("amount, reimbursable, reimbursed_status");
+        .select("amount, reimbursable, reimbursed_status, trip_id, date");
 
       if (expensesError) throw expensesError;
 
@@ -49,12 +49,24 @@ export function TripsDashboard() {
         ?.filter((t) => t.paid)
         .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
 
-      const ytdEarnings = trips
+      const ytdTripEarnings = trips
         ?.filter((t) => {
           const tripYear = new Date(t.beginning_date).getFullYear();
           return tripYear === currentYear;
         })
         .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
+
+      // Calculate YTD non-reimbursable expenses
+      const ytdNonReimbursableExpenses = expenses
+        ?.filter((e) => {
+          if (e.reimbursable) return false; // Only count non-reimbursable
+          const expenseYear = new Date(e.date).getFullYear();
+          return expenseYear === currentYear;
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+
+      // Calculate YTD Net Earnings (earnings minus non-reimbursable expenses)
+      const ytdNetEarnings = ytdTripEarnings - ytdNonReimbursableExpenses;
 
       const pendingReimbursements = expenses
         ?.filter((e) => e.reimbursable && e.reimbursed_status !== "Fully reimbursed")
@@ -67,7 +79,7 @@ export function TripsDashboard() {
       setKpis({
         unpaidInvoices,
         paidInvoices,
-        ytdEarnings,
+        ytdEarnings: ytdNetEarnings,
         pendingReimbursements,
         upcomingTrips,
       });
@@ -94,7 +106,7 @@ export function TripsDashboard() {
       bgColor: "bg-success/10",
     },
     {
-      title: "YTD Earnings",
+      title: "YTD Net Earnings",
       value: `$${kpis.ytdEarnings.toLocaleString()}`,
       icon: TrendingUp,
       color: "text-primary",
