@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { TripAssistant } from "@/components/TripAssistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
 
@@ -19,10 +21,13 @@ export default function TripForm() {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tier, isAdmin } = useSubscription();
   const { toast } = useToast();
   const isEditMode = tripId && tripId !== "new";
 
   const [loading, setLoading] = useState(false);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [tripCount, setTripCount] = useState(0);
   const [formData, setFormData] = useState({
     trip_name: "",
     city: "",
@@ -63,8 +68,30 @@ export default function TripForm() {
   useEffect(() => {
     if (isEditMode) {
       fetchTrip();
+    } else if (user) {
+      checkTripLimit();
     }
-  }, [tripId]);
+  }, [tripId, user]);
+
+  const checkTripLimit = async () => {
+    if (!user || isEditMode || tier !== 'free' || isAdmin) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) throw error;
+
+      setTripCount(count || 0);
+      
+      if (count && count >= 5) {
+        setShowUpgradeDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking trip limit:', error);
+    }
+  };
 
   const fetchTrip = async () => {
     try {
@@ -126,6 +153,12 @@ export default function TripForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Check trip limit for free tier users creating new trips
+    if (!isEditMode && tier === 'free' && !isAdmin && tripCount >= 5) {
+      setShowUpgradeDialog(true);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -650,6 +683,40 @@ export default function TripForm() {
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              Upgrade to Create More Trips
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You've reached the limit of <strong>5 trips</strong> on the Free plan.
+              </p>
+              <p>
+                Upgrade to <strong>Pro</strong> or <strong>Enterprise</strong> to create unlimited trips and unlock additional features like:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Unlimited trips</li>
+                <li>Advanced expense reports</li>
+                <li>AI-powered trip planning</li>
+                <li>Receipt scanning</li>
+                <li>Export to PDF</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
+            <AlertDialogAction onClick={() => navigate('/pricing')}>
+              View Pricing Plans
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

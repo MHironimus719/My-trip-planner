@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { TripsDashboard } from "@/components/TripsDashboard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, MapPin, DollarSign, Plus, Search } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Calendar, MapPin, DollarSign, Plus, Search, Crown } from "lucide-react";
 import { format, isFuture, isPast } from "date-fns";
 
 interface Trip {
@@ -30,7 +32,12 @@ export default function Trips() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { user } = useAuth();
+  const { tier, isAdmin } = useSubscription();
+  const navigate = useNavigate();
+
+  const isFreeTierLimitReached = tier === 'free' && !isAdmin && trips.length >= 5;
 
   useEffect(() => {
     if (user) {
@@ -99,12 +106,19 @@ export default function Trips() {
           <h2 className="text-3xl font-bold">My Trips</h2>
           <p className="text-muted-foreground mt-1">Track and manage all your trips</p>
         </div>
-        <Link to="/trips/new">
-          <Button className="hidden md:flex gap-2">
-            <Plus className="w-4 h-4" />
-            New Trip
-          </Button>
-        </Link>
+        <Button 
+          className="hidden md:flex gap-2"
+          onClick={() => {
+            if (isFreeTierLimitReached) {
+              setShowUpgradeDialog(true);
+            } else {
+              navigate('/trips/new');
+            }
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          New Trip
+        </Button>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -141,12 +155,19 @@ export default function Trips() {
                 : "Get started by creating your first trip"}
             </p>
             {!searchQuery && timeFilter === "all" && (
-              <Link to="/trips/new">
-                <Button className="mt-4">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Trip
-                </Button>
-              </Link>
+              <Button 
+                className="mt-4"
+                onClick={() => {
+                  if (isFreeTierLimitReached) {
+                    setShowUpgradeDialog(true);
+                  } else {
+                    navigate('/trips/new');
+                  }
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Trip
+              </Button>
             )}
           </div>
         </Card>
@@ -204,6 +225,40 @@ export default function Trips() {
           ))}
         </div>
       )}
+
+      <AlertDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              Upgrade to Create More Trips
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You've reached the limit of <strong>5 trips</strong> on the Free plan.
+              </p>
+              <p>
+                Upgrade to <strong>Pro</strong> or <strong>Enterprise</strong> to create unlimited trips and unlock additional features like:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Unlimited trips</li>
+                <li>Advanced expense reports</li>
+                <li>AI-powered trip planning</li>
+                <li>Receipt scanning</li>
+                <li>Export to PDF</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Cancel
+            </Button>
+            <AlertDialogAction onClick={() => navigate('/pricing')}>
+              View Pricing Plans
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
