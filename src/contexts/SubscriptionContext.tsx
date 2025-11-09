@@ -52,7 +52,20 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('check-subscription');
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's an auth error
+        if (error.message?.includes('Auth session missing') || error.message?.includes('Authentication error')) {
+          console.error('Session expired, user needs to re-authenticate');
+          // Set to free tier silently - user will see they need to upgrade
+          setTier('free');
+          setIsSubscribed(false);
+          setIsAdmin(false);
+          setSubscriptionEnd(null);
+          setLoading(false);
+          return;
+        }
+        throw error;
+      }
 
       setTier(data.tier || 'free');
       setIsSubscribed(data.subscribed || false);
