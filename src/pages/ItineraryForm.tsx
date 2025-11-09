@@ -95,7 +95,7 @@ export default function ItineraryForm() {
       if (formData.trip_id) {
         navigate(`/trips/${formData.trip_id}`);
       } else {
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Error saving itinerary item:", error);

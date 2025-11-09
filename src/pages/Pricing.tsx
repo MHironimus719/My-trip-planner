@@ -146,7 +146,7 @@ const Pricing = () => {
                     } else if (!user) {
                       navigate('/auth');
                     } else {
-                      navigate('/');
+                      navigate('/dashboard');
                     }
                   }}
                 >
@@ -161,7 +161,7 @@ const Pricing = () => {
           <p className="text-muted-foreground mb-4">
             All plans include 30-day money-back guarantee
           </p>
-          <Button variant="ghost" onClick={() => navigate('/')}>
+          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
             Back to Dashboard
           </Button>
         </div>

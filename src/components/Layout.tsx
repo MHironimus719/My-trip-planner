@@ -31,7 +31,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             
             <nav className="hidden md:flex items-center gap-1">
               <NavLink
-                to="/"
+                to="/dashboard"
                 end
                 className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 activeClassName="text-primary-foreground bg-primary font-semibold"

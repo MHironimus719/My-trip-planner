@@ -7,7 +7,7 @@ export function MobileNav() {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
       <div className="flex items-center justify-around h-16">
         <NavLink
-          to="/"
+          to="/dashboard"
           end
           className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-muted-foreground hover:text-foreground transition-colors"
           activeClassName="text-primary"

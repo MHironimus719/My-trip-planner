@@ -46,7 +46,7 @@ export default function Install() {
 
     if (outcome === 'accepted') {
       setIsInstalled(true);
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => navigate('/dashboard'), 2000);
     }
 
     setDeferredPrompt(null);
@@ -65,7 +65,7 @@ export default function Install() {
               Trip Planner is already installed on your device.
             </p>
           </div>
-          <Button onClick={() => navigate('/')} className="w-full">
+          <Button onClick={() => navigate('/dashboard')} className="w-full">
             Open App
           </Button>
         </Card>
@@ -137,7 +137,7 @@ export default function Install() {
                 </li>
               </ol>
             </div>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+            <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
               Continue in Browser
             </Button>
           </div>
@@ -147,7 +147,7 @@ export default function Install() {
               <Download className="w-5 h-5 mr-2" />
               Install App
             </Button>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+            <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
               Continue in Browser
             </Button>
           </div>
@@ -170,7 +170,7 @@ export default function Install() {
                 </li>
               </ol>
             </div>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+            <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
               Continue in Browser
             </Button>
           </div>
