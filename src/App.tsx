@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "@/components/Layout";
@@ -22,30 +23,32 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
-            <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
-            <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
-            <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
-            <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
-            <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
-            <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
-            <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
-            <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
-            <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/" element={<ProtectedRoute><Layout><Trips /></Layout></ProtectedRoute>} />
+              <Route path="/trips/new" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
+              <Route path="/trips/:tripId/edit" element={<ProtectedRoute><Layout><TripForm /></Layout></ProtectedRoute>} />
+              <Route path="/trips/:tripId" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
+              <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+              <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
+              <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+              <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
+              <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
+              <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
