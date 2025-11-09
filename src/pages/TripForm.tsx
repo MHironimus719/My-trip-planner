@@ -135,6 +135,8 @@ export default function TripForm() {
         arrival_time: formData.arrival_time ? new Date(formData.arrival_time).toISOString() : null,
         car_pickup_datetime: formData.car_pickup_datetime ? new Date(formData.car_pickup_datetime).toISOString() : null,
         car_dropoff_datetime: formData.car_dropoff_datetime ? new Date(formData.car_dropoff_datetime).toISOString() : null,
+        hotel_checkin_date: formData.hotel_checkin_date || null,
+        hotel_checkout_date: formData.hotel_checkout_date || null,
         user_id: user.id,
       };
 
