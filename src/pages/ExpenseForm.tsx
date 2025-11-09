@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { expenseSchema } from "@/lib/validations";
 
 export default function ExpenseForm() {
   const navigate = useNavigate();
@@ -63,9 +64,24 @@ export default function ExpenseForm() {
 
     setLoading(true);
     try {
+      // Validate input data
+      const validationData = {
+        trip_id: formData.trip_id,
+        date: formData.date,
+        merchant: formData.merchant,
+        category: formData.category,
+        amount: parseFloat(formData.amount),
+        payment_method: formData.payment_method,
+        currency: formData.currency,
+        description: formData.description || undefined,
+        notes: formData.notes || undefined,
+      };
+
+      const validatedData = expenseSchema.parse(validationData);
+
       const expenseData = {
         ...formData,
-        amount: parseFloat(formData.amount),
+        amount: validatedData.amount,
         user_id: user.id,
       };
 
@@ -85,11 +101,11 @@ export default function ExpenseForm() {
       } else {
         navigate("/expenses");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving expense:", error);
       toast({
         title: "Error",
-        description: "Failed to save expense",
+        description: error.message || "Failed to save expense",
         variant: "destructive",
       });
     } finally {

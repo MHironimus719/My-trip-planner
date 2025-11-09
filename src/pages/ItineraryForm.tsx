@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { itineraryItemSchema } from "@/lib/validations";
 
 export default function ItineraryForm() {
   const navigate = useNavigate();
@@ -62,9 +63,27 @@ export default function ItineraryForm() {
 
     setLoading(true);
     try {
+      // Validate input data
+      const validationData = {
+        trip_id: formData.trip_id,
+        date: formData.date,
+        start_time: formData.start_time || undefined,
+        end_time: formData.end_time || undefined,
+        item_type: formData.item_type,
+        title: formData.title,
+        description: formData.description || undefined,
+        location_name: formData.location_name || undefined,
+        address: formData.address || undefined,
+        confirmation_number: formData.confirmation_number || undefined,
+        booking_link: formData.booking_link || undefined,
+        notes: formData.notes || undefined,
+      };
+
+      const validatedData = itineraryItemSchema.parse(validationData);
+
       const { error } = await supabase
         .from("itinerary_items")
-        .insert([formData]);
+        .insert([{ ...formData, ...validatedData }]);
 
       if (error) throw error;
 
@@ -78,11 +97,11 @@ export default function ItineraryForm() {
       } else {
         navigate("/");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving itinerary item:", error);
       toast({
         title: "Error",
-        description: "Failed to save itinerary item",
+        description: error.message || "Failed to save itinerary item",
         variant: "destructive",
       });
     } finally {

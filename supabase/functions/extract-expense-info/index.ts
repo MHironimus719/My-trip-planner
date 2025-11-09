@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +11,34 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication is now handled by Supabase automatically (verify_jwt enabled by default)
+    // The request will only reach here if the JWT is valid
+    
     const { text, images } = await req.json();
-    console.log('Received request with text:', text, 'and', images?.length || 0, 'images');
+
+    // Validate input
+    if (!text || typeof text !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Text is required and must be a string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (text.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: 'Text must be less than 10000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (images && (!Array.isArray(images) || images.length > 10)) {
+      return new Response(
+        JSON.stringify({ error: 'Images must be an array with maximum 10 items' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Extracting expense info from authenticated user with text:', text, 'and', images?.length || 0, 'images');
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {

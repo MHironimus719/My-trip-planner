@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { tripSchema } from "@/lib/validations";
 
 export default function TripForm() {
   const { tripId } = useParams();
@@ -128,9 +129,36 @@ export default function TripForm() {
 
     setLoading(true);
     try {
+      // Validate input data
+      const validationData = {
+        trip_name: formData.trip_name,
+        city: formData.city || undefined,
+        country: formData.country || undefined,
+        beginning_date: formData.beginning_date,
+        ending_date: formData.ending_date,
+        client_or_event: formData.client_or_event || undefined,
+        fee: parseFloat(formData.fee) || 0,
+        internal_notes: formData.internal_notes || undefined,
+        airline: formData.airline || undefined,
+        flight_number: formData.flight_number || undefined,
+        flight_confirmation: formData.flight_confirmation || undefined,
+        hotel_name: formData.hotel_name || undefined,
+        hotel_address: formData.hotel_address || undefined,
+        hotel_booking_service: formData.hotel_booking_service || undefined,
+        hotel_confirmation: formData.hotel_confirmation || undefined,
+        car_rental_company: formData.car_rental_company || undefined,
+        car_pickup_location: formData.car_pickup_location || undefined,
+        car_dropoff_location: formData.car_dropoff_location || undefined,
+        car_booking_service: formData.car_booking_service || undefined,
+        car_confirmation: formData.car_confirmation || undefined,
+        invoice_number: formData.invoice_number || undefined,
+      };
+
+      const validatedData = tripSchema.parse(validationData);
+
       const tripData = {
         ...formData,
-        fee: parseFloat(formData.fee) || 0,
+        fee: validatedData.fee,
         departure_time: formData.departure_time ? new Date(formData.departure_time).toISOString() : null,
         arrival_time: formData.arrival_time ? new Date(formData.arrival_time).toISOString() : null,
         car_pickup_datetime: formData.car_pickup_datetime ? new Date(formData.car_pickup_datetime).toISOString() : null,
@@ -166,11 +194,11 @@ export default function TripForm() {
         });
         navigate(`/trips/${data.trip_id}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving trip:", error);
       toast({
         title: "Error",
-        description: "Failed to save trip",
+        description: error.message || "Failed to save trip",
         variant: "destructive",
       });
     } finally {

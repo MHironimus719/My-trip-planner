@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { signUpSchema, signInSchema } from "@/lib/validations";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -30,17 +31,14 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        if (!fullName.trim()) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Please enter your full name",
-          });
-          setIsLoading(false);
-          return;
-        }
+        // Validate input
+        const validatedData = signUpSchema.parse({
+          email: email.trim(),
+          password,
+          fullName: fullName.trim(),
+        });
 
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(validatedData.email, validatedData.password, validatedData.fullName);
         if (error) {
           toast({
             variant: "destructive",
@@ -54,7 +52,13 @@ export default function Auth() {
           });
         }
       } else {
-        const { error } = await signIn(email, password);
+        // Validate input
+        const validatedData = signInSchema.parse({
+          email: email.trim(),
+          password,
+        });
+
+        const { error } = await signIn(validatedData.email, validatedData.password);
         if (error) {
           toast({
             variant: "destructive",
@@ -71,8 +75,8 @@ export default function Auth() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
+        title: "Validation Error",
+        description: error.message || "Please check your input",
       });
     } finally {
       setIsLoading(false);

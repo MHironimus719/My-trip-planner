@@ -11,7 +11,35 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication is now handled by Supabase automatically (verify_jwt enabled by default)
+    // The request will only reach here if the JWT is valid
+    
     const { message, images } = await req.json();
+
+    // Validate input
+    if (!message || typeof message !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Message is required and must be a string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (message.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: 'Message must be less than 10000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (images && (!Array.isArray(images) || images.length > 10)) {
+      return new Response(
+        JSON.stringify({ error: 'Images must be an array with maximum 10 items' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Extracting trip info from authenticated user');
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
