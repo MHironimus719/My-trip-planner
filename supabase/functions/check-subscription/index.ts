@@ -28,35 +28,32 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
     logStep("Authorization header found");
 
-    const token = authHeader.replace("Bearer ", "");
-    logStep("Authenticating user with token");
-    
-    // Create client with anon key to verify the JWT token
-    const anonClient = createClient(
+    // Create client with user's auth context
+    const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: authHeader }
-        }
+          headers: { Authorization: authHeader },
+        },
       }
     );
     
-    const { data: userData, error: userError } = await anonClient.auth.getUser();
+    logStep("Authenticating user");
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Now create service role client for database operations
-    const supabaseClient = createClient(
+    // Create service role client for admin operations
+    const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
     // Check if user is admin
-    const { data: roleData } = await supabaseClient
+    const { data: roleData } = await serviceClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
@@ -81,7 +78,7 @@ serve(async (req) => {
     
     if (customers.data.length === 0) {
       logStep("No customer found, updating unsubscribed state");
-      await supabaseClient
+      await serviceClient
         .from('profiles')
         .update({ 
           subscription_tier: 'free',
@@ -129,7 +126,7 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId, tier, endDate: subscriptionEnd });
 
       // Update profile with subscription info
-      await supabaseClient
+      await serviceClient
         .from('profiles')
         .update({ 
           subscription_tier: tier,
@@ -141,7 +138,7 @@ serve(async (req) => {
         .eq('id', user.id);
     } else {
       logStep("No active subscription found");
-      await supabaseClient
+      await serviceClient
         .from('profiles')
         .update({ 
           subscription_tier: 'free',
