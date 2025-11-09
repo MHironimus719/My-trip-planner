@@ -47,7 +47,7 @@ export default function Trips() {
       const { data, error } = await supabase
         .from("trips")
         .select("*")
-        .order("beginning_date", { ascending: false });
+        .order("beginning_date", { ascending: true });
 
       if (error) throw error;
       setTrips(data || []);
@@ -72,9 +72,9 @@ export default function Trips() {
       );
     }
 
-    // Time filter
-    if (timeFilter === "upcoming") {
-      filtered = filtered.filter((trip) => isFuture(new Date(trip.beginning_date)));
+    // Time filter - default to showing only upcoming trips
+    if (timeFilter === "upcoming" || (!searchQuery && timeFilter === "all")) {
+      filtered = filtered.filter((trip) => !isPast(new Date(trip.ending_date)));
     } else if (timeFilter === "past") {
       filtered = filtered.filter((trip) => isPast(new Date(trip.ending_date)));
     }
@@ -122,9 +122,8 @@ export default function Trips() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Trips</SelectItem>
-            <SelectItem value="upcoming">Upcoming</SelectItem>
-            <SelectItem value="past">Past</SelectItem>
+            <SelectItem value="all">Upcoming Trips</SelectItem>
+            <SelectItem value="past">Past Trips</SelectItem>
           </SelectContent>
         </Select>
       </div>
