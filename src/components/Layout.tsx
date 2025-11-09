@@ -44,26 +44,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <DollarSign className="w-4 h-4 inline mr-2" />
                 Expenses
               </NavLink>
-              <NavLink
-                to="/settings"
-                className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                activeClassName="text-primary bg-accent"
-              >
-                <Settings className="w-4 h-4 inline mr-2" />
-                Settings
-              </NavLink>
             </nav>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="hidden md:flex gap-2"
+          <NavLink
+            to="/settings"
+            className="hidden md:flex gap-2 px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            activeClassName="text-primary bg-accent"
           >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </Button>
+            <Settings className="w-4 h-4" />
+            Settings
+          </NavLink>
         </div>
       </header>
       
