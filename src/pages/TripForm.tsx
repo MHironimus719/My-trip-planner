@@ -85,7 +85,7 @@ export default function TripForm() {
 
       setTripCount(count || 0);
       
-      if (count && count >= 5) {
+      if (count && count >= 3) {
         setShowUpgradeDialog(true);
       }
     } catch (error) {
@@ -155,7 +155,7 @@ export default function TripForm() {
     if (!user) return;
 
     // Check trip limit for free tier users creating new trips
-    if (!isEditMode && tier === 'free' && !isAdmin && tripCount >= 5) {
+    if (!isEditMode && tier === 'free' && !isAdmin && tripCount >= 3) {
       setShowUpgradeDialog(true);
       return;
     }
@@ -693,7 +693,7 @@ export default function TripForm() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                You've reached the limit of <strong>5 trips</strong> on the Free plan.
+                You've reached the limit of <strong>3 trips</strong> on the Free plan.
               </p>
               <p>
                 Upgrade to <strong>Pro</strong> or <strong>Enterprise</strong> to create unlimited trips and unlock additional features like:

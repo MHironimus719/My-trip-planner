@@ -31,7 +31,7 @@ const Pricing = () => {
       price: '$0',
       description: 'Perfect for getting started',
       features: [
-        'Up to 5 trips',
+        'Up to 3 trips',
         'Basic expense tracking',
         'Itinerary planning',
         'Mobile access',

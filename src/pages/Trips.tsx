@@ -37,7 +37,7 @@ export default function Trips() {
   const { tier, isAdmin } = useSubscription();
   const navigate = useNavigate();
 
-  const isFreeTierLimitReached = tier === 'free' && !isAdmin && trips.length >= 5;
+  const isFreeTierLimitReached = tier === 'free' && !isAdmin && trips.length >= 3;
 
   useEffect(() => {
     if (user) {
@@ -235,7 +235,7 @@ export default function Trips() {
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                You've reached the limit of <strong>5 trips</strong> on the Free plan.
+                You've reached the limit of <strong>3 trips</strong> on the Free plan.
               </p>
               <p>
                 Upgrade to <strong>Pro</strong> or <strong>Enterprise</strong> to create unlimited trips and unlock additional features like:
