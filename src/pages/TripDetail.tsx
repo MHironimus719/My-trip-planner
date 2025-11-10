@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car } from "lucide-react";
 import { format } from "date-fns";
+import { FlightStatus } from "@/components/FlightStatus";
 
 export default function TripDetail() {
   const { tripId } = useParams();
@@ -169,34 +170,26 @@ export default function TripDetail() {
             </div>
           </Card>
 
-          {trip.flight_needed && (trip.airline || trip.flight_number) && (
+          {trip.flight_needed && trip.flight_number && (
+            <FlightStatus flightNumber={trip.flight_number} airline={trip.airline} />
+          )}
+
+          {trip.flight_needed && (trip.airline || trip.flight_confirmation || trip.departure_time || trip.arrival_time) && (
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Plane className="w-5 h-5" />
-                <h3 className="text-lg font-semibold">Flight Information</h3>
+                <h3 className="text-lg font-semibold">Your Flight Details</h3>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
-                {trip.airline && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Airline</div>
-                    <div className="font-medium">{trip.airline}</div>
-                  </div>
-                )}
-                {trip.flight_number && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Flight Number</div>
-                    <div className="font-medium">{trip.flight_number}</div>
-                  </div>
-                )}
                 {trip.departure_time && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Departure</div>
+                    <div className="text-sm text-muted-foreground">Your Scheduled Departure</div>
                     <div className="font-medium">{format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.arrival_time && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Arrival</div>
+                    <div className="text-sm text-muted-foreground">Your Scheduled Arrival</div>
                     <div className="font-medium">{format(new Date(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
