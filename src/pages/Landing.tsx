@@ -69,6 +69,31 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Header Navigation */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Plane className="w-6 h-6 text-primary" />
+              <span className="text-xl font-bold">Travel Manager</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost"
+                onClick={() => navigate('/auth')}
+              >
+                Log In
+              </Button>
+              <Button 
+                onClick={() => navigate('/auth')}
+              >
+                Sign Up
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-4xl mx-auto text-center space-y-8">
