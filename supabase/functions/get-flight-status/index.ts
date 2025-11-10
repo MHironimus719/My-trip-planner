@@ -45,9 +45,12 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('AviationStack API error:', response.status);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch flight data' }),
+        JSON.stringify({ 
+          error: 'Failed to fetch flight data',
+          message: 'Unable to connect to flight data service. Please try again later or enter flight details manually.'
+        }),
         {
-          status: response.status,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -60,10 +63,10 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'No flight found',
-          message: 'Flight number not found or no active flights'
+          message: 'Flight number not found. This may be because the flight is not currently active, or the free tier API has limited coverage. Try entering the flight information manually.'
         }),
         {
-          status: 404,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
