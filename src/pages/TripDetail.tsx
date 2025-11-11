@@ -223,13 +223,13 @@ export default function TripDetail() {
                 {trip.departure_time && (
                   <div>
                     <div className="text-sm text-muted-foreground">Your Scheduled Departure</div>
-                    <div className="font-medium">{format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(parseISO(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.arrival_time && (
                   <div>
                     <div className="text-sm text-muted-foreground">Your Scheduled Arrival</div>
-                    <div className="font-medium">{format(new Date(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(parseISO(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.flight_confirmation && (
