@@ -75,6 +75,13 @@ serve(async (req) => {
     // Get the most recent flight
     const flight = data.data[0];
 
+    // Helper function to strip timezone from ISO string to treat as local time
+    const stripTimezone = (isoString: string | null): string | null => {
+      if (!isoString) return null;
+      // Remove timezone offset (e.g., "+00:00" or "Z") to treat as local time
+      return isoString.replace(/[+-]\d{2}:\d{2}$/, '').replace(/Z$/, '');
+    };
+
     // Format the response with relevant flight information
     const flightInfo = {
       flightNumber: flight.flight?.iata || flightNumber,
@@ -85,9 +92,9 @@ serve(async (req) => {
         iata: flight.departure?.iata || '',
         terminal: flight.departure?.terminal || null,
         gate: flight.departure?.gate || null,
-        scheduledTime: flight.departure?.scheduled || null,
-        estimatedTime: flight.departure?.estimated || null,
-        actualTime: flight.departure?.actual || null,
+        scheduledTime: stripTimezone(flight.departure?.scheduled),
+        estimatedTime: stripTimezone(flight.departure?.estimated),
+        actualTime: stripTimezone(flight.departure?.actual),
         delay: flight.departure?.delay || null,
       },
       arrival: {
@@ -95,9 +102,9 @@ serve(async (req) => {
         iata: flight.arrival?.iata || '',
         terminal: flight.arrival?.terminal || null,
         gate: flight.arrival?.gate || null,
-        scheduledTime: flight.arrival?.scheduled || null,
-        estimatedTime: flight.arrival?.estimated || null,
-        actualTime: flight.arrival?.actual || null,
+        scheduledTime: stripTimezone(flight.arrival?.scheduled),
+        estimatedTime: stripTimezone(flight.arrival?.estimated),
+        actualTime: stripTimezone(flight.arrival?.actual),
         delay: flight.arrival?.delay || null,
       },
       aircraft: {
