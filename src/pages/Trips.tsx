@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X } from "lucide-react";
 import { format, isFuture, isPast } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ export default function Trips() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [tripToCancel, setTripToCancel] = useState<string | null>(null);
   const { user } = useAuth();
   const { tier, isAdmin } = useSubscription();
   const navigate = useNavigate();
@@ -94,15 +95,14 @@ export default function Trips() {
     setFilteredTrips(filtered);
   };
 
-  const handleCancelTrip = async (tripId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleCancelTrip = async () => {
+    if (!tripToCancel) return;
     
     try {
       const { error } = await supabase
         .from("trips")
         .update({ cancelled: true })
-        .eq("trip_id", tripId);
+        .eq("trip_id", tripToCancel);
 
       if (error) throw error;
 
@@ -119,6 +119,8 @@ export default function Trips() {
         description: "Failed to cancel trip. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setTripToCancel(null);
     }
   };
 
@@ -287,7 +289,11 @@ export default function Trips() {
                   variant="ghost"
                   size="icon"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={(e) => handleCancelTrip(trip.trip_id, e)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTripToCancel(trip.trip_id);
+                  }}
                   title="Cancel trip"
                 >
                   <X className="w-4 h-4" />
@@ -358,7 +364,11 @@ export default function Trips() {
                   variant="ghost"
                   size="icon"
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground h-8 w-8"
-                  onClick={(e) => handleCancelTrip(trip.trip_id, e)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTripToCancel(trip.trip_id);
+                  }}
                   title="Cancel trip"
                 >
                   <X className="w-3 h-3" />
@@ -398,6 +408,25 @@ export default function Trips() {
             </Button>
             <AlertDialogAction onClick={() => navigate('/pricing')}>
               View Pricing Plans
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!tripToCancel} onOpenChange={(open) => !open && setTripToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Trip</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this trip? The trip will be removed from your dashboard but will remain searchable in the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setTripToCancel(null)}>
+              No
+            </Button>
+            <AlertDialogAction onClick={handleCancelTrip}>
+              Yes, Cancel Trip
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
