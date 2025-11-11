@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,9 +41,9 @@ serve(async (req) => {
 
     console.log('Extracting expense info from authenticated user with text:', text, 'and', images?.length || 0, 'images');
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
     }
 
     const systemPrompt = `You are an AI assistant that extracts expense information from receipts and text descriptions. 
@@ -87,7 +88,7 @@ Use the extract_expense_info function to return the structured data.`;
     }
 
     const payload = {
-      model: "google/gemini-2.5-flash",
+      model: "gpt-5-2025-08-07",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
@@ -129,12 +130,12 @@ Use the extract_expense_info function to return the structured data.`;
       tool_choice: { type: "function", function: { name: "extract_expense_info" } }
     };
 
-    console.log('Calling Lovable AI with payload');
+    console.log('Calling OpenAI API with payload');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -142,12 +143,12 @@ Use the extract_expense_info function to return the structured data.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Lovable AI error:', response.status, errorText);
+      console.error('OpenAI API error:', response.status, errorText);
       throw new Error(`AI service error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Received response from Lovable AI');
+    console.log('Received response from OpenAI');
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
