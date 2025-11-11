@@ -156,28 +156,35 @@ export default function Settings() {
           const { code } = event.data;
           
           try {
-            // Get current session for auth token
+            // Get the current session token
             const { data: { session } } = await supabase.auth.getSession();
             
             if (!session?.access_token) {
-              throw new Error('No active session');
+              throw new Error('No active session found. Please try logging in again.');
             }
 
-            // Exchange code for tokens via edge function
-            const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
-              body: { code },
-              headers: {
-                Authorization: `Bearer ${session.access_token}`
+            // Exchange code for tokens via edge function with explicit auth
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-oauth`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ code }),
               }
-            });
+            );
 
-            if (error) {
-              console.error('Calendar connection error:', error);
-              sonnerToast.error('Failed to connect Google Calendar');
-            } else {
-              setCalendarConnected(true);
-              sonnerToast.success('Google Calendar connected successfully!');
+            const data = await response.json();
+
+            if (!response.ok || data.error) {
+              console.error('Calendar connection error:', data);
+              throw new Error(data.error || 'Failed to connect');
             }
+
+            setCalendarConnected(true);
+            sonnerToast.success('Google Calendar connected successfully!');
           } catch (error: any) {
             console.error('OAuth callback error:', error);
             sonnerToast.error(error.message || 'Failed to connect Google Calendar');

@@ -7,7 +7,10 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('[GOOGLE-OAUTH] Request received:', req.method, req.url);
+  
   if (req.method === 'OPTIONS') {
+    console.log('[GOOGLE-OAUTH] Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -18,6 +21,7 @@ serve(async (req) => {
 
     // Handle OAuth callback (GET request)
     if (req.url.includes('/callback')) {
+      console.log('[GOOGLE-OAUTH] Serving callback HTML');
       const callbackHtml = await Deno.readTextFile(
         new URL('./callback.html', import.meta.url).pathname
       );
@@ -28,9 +32,11 @@ serve(async (req) => {
 
     // Parse JSON body for POST requests
     const { code, action } = await req.json();
+    console.log('[GOOGLE-OAUTH] Request body:', { code: code ? 'present' : 'missing', action });
 
     // Handle get_auth_url action
     if (action === 'get_auth_url') {
+      console.log('[GOOGLE-OAUTH] Generating auth URL');
       const clientId = Deno.env.get('GOOGLE_CLIENT_ID')!;
       const callbackUrl = `${supabaseUrl}/functions/v1/google-calendar-oauth/callback`;
       
@@ -42,6 +48,7 @@ serve(async (req) => {
       authUrl.searchParams.set('access_type', 'offline');
       authUrl.searchParams.set('prompt', 'consent');
 
+      console.log('[GOOGLE-OAUTH] Auth URL generated successfully');
       return new Response(
         JSON.stringify({ authUrl: authUrl.toString() }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -49,13 +56,41 @@ serve(async (req) => {
     }
 
     if (!code) {
+      console.error('[GOOGLE-OAUTH] No authorization code provided');
       return new Response(
         JSON.stringify({ error: 'Authorization code required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Get user ID from JWT
+    console.log('[GOOGLE-OAUTH] Extracting user from JWT');
+    const authHeader = req.headers.get('authorization');
+    console.log('[GOOGLE-OAUTH] Auth header present:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('[GOOGLE-OAUTH] Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader?.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error('[GOOGLE-OAUTH] User authentication failed:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[GOOGLE-OAUTH] User authenticated:', user.id);
+
     // Exchange code for tokens
+    console.log('[GOOGLE-OAUTH] Exchanging code for tokens');
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -69,7 +104,8 @@ serve(async (req) => {
     });
 
     if (!tokenResponse.ok) {
-      console.error('Token exchange failed:', await tokenResponse.text());
+      const errorText = await tokenResponse.text();
+      console.error('[GOOGLE-OAUTH] Token exchange failed:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to exchange authorization code' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,23 +114,13 @@ serve(async (req) => {
 
     const tokens = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = tokens;
+    console.log('[GOOGLE-OAUTH] Tokens received successfully');
 
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + expires_in * 1000);
 
-    // Get user ID from JWT
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Store tokens in profiles table
+    console.log('[GOOGLE-OAUTH] Storing tokens in database');
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -106,19 +132,20 @@ serve(async (req) => {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Failed to store tokens:', updateError);
+      console.error('[GOOGLE-OAUTH] Failed to store tokens:', updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to store tokens' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    console.log('[GOOGLE-OAUTH] Success! Calendar connected for user:', user.id);
     return new Response(
       JSON.stringify({ success: true, message: 'Google Calendar connected successfully' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('OAuth error:', error);
+    console.error('[GOOGLE-OAUTH] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
