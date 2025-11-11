@@ -100,33 +100,85 @@ serve(async (req) => {
         location: trip.city && trip.country ? `${trip.city}, ${trip.country}` : trip.city || '',
       };
 
-      const calendarResponse = await fetch(
-        'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(event),
-        }
-      );
+      let calendarResponse;
+      let method = 'POST';
+      let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+      // If updating and we have an event ID, use PATCH to update existing event
+      if (action === 'update' && trip.google_calendar_event_id) {
+        method = 'PATCH';
+        url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${trip.google_calendar_event_id}`;
+      }
+
+      calendarResponse = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
 
       if (!calendarResponse.ok) {
-        console.error('Calendar API error:', await calendarResponse.text());
+        const errorText = await calendarResponse.text();
+        console.error('Calendar API error:', errorText);
         return new Response(
-          JSON.stringify({ error: 'Failed to sync with Google Calendar' }),
+          JSON.stringify({ error: 'Failed to sync with Google Calendar', details: errorText }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       const calendarEvent = await calendarResponse.json();
 
+      // Store the event ID in the trip if it's a new event
+      if (!trip.google_calendar_event_id) {
+        await supabase
+          .from('trips')
+          .update({ google_calendar_event_id: calendarEvent.id })
+          .eq('trip_id', tripId);
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
           eventId: calendarEvent.id,
-          message: 'Trip synced to Google Calendar'
+          message: action === 'create' ? 'Trip added to Google Calendar' : 'Trip updated in Google Calendar'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'delete' && trip.google_calendar_event_id) {
+      // Delete calendar event
+      const calendarResponse = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${trip.google_calendar_event_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!calendarResponse.ok && calendarResponse.status !== 404) {
+        const errorText = await calendarResponse.text();
+        console.error('Calendar API delete error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to delete from Google Calendar', details: errorText }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Clear the event ID from the trip
+      await supabase
+        .from('trips')
+        .update({ google_calendar_event_id: null })
+        .eq('trip_id', tripId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Trip removed from Google Calendar'
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
