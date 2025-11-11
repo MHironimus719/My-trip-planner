@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { LogOut, Sun, Moon, Upload, Image as ImageIcon } from "lucide-react";
+import { LogOut, Sun, Moon, Upload, Calendar, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,27 @@ export default function Settings() {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchLogo();
+      checkCalendarConnection();
     }
   }, [user]);
+
+  const checkCalendarConnection = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("google_calendar_connected")
+      .eq("id", user?.id)
+      .maybeSingle();
+
+    if (data?.google_calendar_connected) {
+      setCalendarConnected(true);
+    }
+  };
 
   const fetchLogo = async () => {
     const { data } = await supabase
@@ -84,6 +99,90 @@ export default function Settings() {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleConnectCalendar = async () => {
+    if (calendarConnected) {
+      // Disconnect
+      try {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            google_access_token: null,
+            google_refresh_token: null,
+            google_token_expires_at: null,
+            google_calendar_connected: false,
+          })
+          .eq("id", user?.id);
+
+        if (error) throw error;
+
+        setCalendarConnected(false);
+        sonnerToast.success("Google Calendar disconnected");
+      } catch (error: any) {
+        sonnerToast.error("Failed to disconnect calendar");
+      }
+      return;
+    }
+
+    // Connect - start OAuth flow
+    setConnectingCalendar(true);
+    try {
+      // Get client ID from edge function
+      const { data: configData, error: configError } = await supabase.functions.invoke('google-calendar-oauth', {
+        body: { action: 'get_auth_url' }
+      });
+
+      if (configError || !configData?.authUrl) {
+        throw new Error('Failed to get OAuth URL');
+      }
+
+      // Open OAuth in new window
+      const width = 500;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        configData.authUrl,
+        'Google Calendar OAuth',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      // Listen for OAuth callback
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.data?.type === 'google-oauth-success') {
+          const { code } = event.data;
+          
+          // Exchange code for tokens via edge function
+          const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+            body: { code }
+          });
+
+          if (error) {
+            sonnerToast.error('Failed to connect Google Calendar');
+          } else {
+            setCalendarConnected(true);
+            sonnerToast.success('Google Calendar connected successfully!');
+          }
+          
+          popup?.close();
+          window.removeEventListener('message', handleMessage);
+          setConnectingCalendar(false);
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+      
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        setConnectingCalendar(false);
+      }, 300000);
+    } catch (error: any) {
+      sonnerToast.error('Failed to start OAuth flow');
+      setConnectingCalendar(false);
     }
   };
 
@@ -179,6 +278,44 @@ export default function Settings() {
               )}
             </div>
           )}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Integrations</h3>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-medium mb-2 block">Google Calendar</Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Automatically sync your trips to Google Calendar
+            </p>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={handleConnectCalendar}
+                disabled={connectingCalendar}
+                variant={calendarConnected ? "outline" : "default"}
+                className="gap-2"
+              >
+                {calendarConnected ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Disconnect Calendar
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-4 h-4" />
+                    {connectingCalendar ? 'Connecting...' : 'Connect Calendar'}
+                  </>
+                )}
+              </Button>
+              {calendarConnected && (
+                <Badge variant="default" className="gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Connected
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
       </Card>
 

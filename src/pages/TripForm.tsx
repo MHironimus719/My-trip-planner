@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { ArrowLeft, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
+import { useCalendarSync } from "@/hooks/useCalendarSync";
 
 export default function TripForm() {
   const { tripId } = useParams();
@@ -23,6 +24,7 @@ export default function TripForm() {
   const { user } = useAuth();
   const { tier, isAdmin } = useSubscription();
   const { toast } = useToast();
+  const { syncTripToCalendar } = useCalendarSync();
   const isEditMode = tripId && tripId !== "new";
 
   const [loading, setLoading] = useState(false);
@@ -208,6 +210,10 @@ export default function TripForm() {
           .eq("trip_id", tripId);
 
         if (error) throw error;
+        
+        // Sync to Google Calendar
+        await syncTripToCalendar(tripId, 'update');
+        
         toast({
           title: "Success",
           description: "Trip updated successfully",
@@ -221,6 +227,10 @@ export default function TripForm() {
           .single();
 
         if (error) throw error;
+        
+        // Sync to Google Calendar
+        await syncTripToCalendar(data.trip_id, 'create');
+        
         toast({
           title: "Success",
           description: "Trip created successfully",
