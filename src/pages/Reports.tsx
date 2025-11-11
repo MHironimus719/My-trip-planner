@@ -118,8 +118,26 @@ export default function Reports() {
           reader.onloadend = () => resolve(reader.result as string);
           reader.readAsDataURL(logoBlob);
         });
-        pdf.addImage(logoDataUrl, "PNG", 15, yPos, 30, 30);
-        yPos += 35;
+        
+        // Calculate proper logo dimensions maintaining aspect ratio
+        const img = new Image();
+        await new Promise((resolve) => {
+          img.onload = resolve;
+          img.src = logoDataUrl;
+        });
+        
+        const maxWidth = 40;
+        const maxHeight = 30;
+        let logoWidth = maxWidth;
+        let logoHeight = (img.height / img.width) * maxWidth;
+        
+        if (logoHeight > maxHeight) {
+          logoHeight = maxHeight;
+          logoWidth = (img.width / img.height) * maxHeight;
+        }
+        
+        pdf.addImage(logoDataUrl, "PNG", 15, yPos, logoWidth, logoHeight);
+        yPos += logoHeight + 5;
       } catch (error) {
         console.error("Error loading logo:", error);
       }
@@ -200,6 +218,67 @@ export default function Reports() {
     pdf.setFont("helvetica", "bold");
     pdf.text("TOTAL:", 130, yPos);
     pdf.text(`$${total.toFixed(2)}`, 170, yPos);
+
+    // Add receipt images section
+    const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
+    if (expensesWithReceipts.length > 0) {
+      pdf.addPage();
+      yPos = 20;
+      
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Receipt Images", pageWidth / 2, yPos, { align: "center" });
+      yPos += 15;
+      
+      for (const expense of expensesWithReceipts) {
+        try {
+          const receiptResponse = await fetch(expense.receipt_url!);
+          const receiptBlob = await receiptResponse.blob();
+          const receiptDataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(receiptBlob);
+          });
+          
+          // Calculate receipt image dimensions
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = receiptDataUrl;
+          });
+          
+          const maxWidth = 170;
+          const maxHeight = 200;
+          let receiptWidth = maxWidth;
+          let receiptHeight = (img.height / img.width) * maxWidth;
+          
+          if (receiptHeight > maxHeight) {
+            receiptHeight = maxHeight;
+            receiptWidth = (img.width / img.height) * maxHeight;
+          }
+          
+          // Check if we need a new page
+          if (yPos + receiptHeight + 20 > 280) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          
+          // Add expense info
+          pdf.setFontSize(10);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(`${expense.merchant} - ${format(new Date(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toFixed(2)}`, 15, yPos);
+          yPos += 7;
+          
+          // Add receipt image centered
+          const xPos = (pageWidth - receiptWidth) / 2;
+          pdf.addImage(receiptDataUrl, "JPEG", xPos, yPos, receiptWidth, receiptHeight);
+          yPos += receiptHeight + 15;
+          
+        } catch (error) {
+          console.error("Error loading receipt:", error);
+        }
+      }
+    }
 
     // Save
     const fileName = `${selectedTrip.trip_name.replace(/[^a-z0-9]/gi, "_")}_Expense_Report.pdf`;
