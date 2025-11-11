@@ -73,8 +73,15 @@ export function TripsDashboard() {
         .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
 
       const upcomingTrips = trips
-        ?.filter((t) => new Date(t.beginning_date) >= today && !t.cancelled)
+        ?.filter((t) => {
+          const isUpcoming = new Date(t.beginning_date) >= today;
+          const isNotCancelled = !t.cancelled;
+          console.log(`Trip: ${t.trip_name}, Beginning: ${t.beginning_date}, Upcoming: ${isUpcoming}, Cancelled: ${t.cancelled}, Include: ${isUpcoming && isNotCancelled}`);
+          return isUpcoming && isNotCancelled;
+        })
         .length || 0;
+
+      console.log(`Total upcoming trips count: ${upcomingTrips}`);
 
       setKpis({
         unpaidInvoices,

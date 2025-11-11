@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { FlightStatus } from "@/components/FlightStatus";
 
@@ -39,6 +40,44 @@ export default function TripDetail() {
       console.error("Error fetching trip data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteItineraryItem = async (itemId: string) => {
+    if (!confirm("Are you sure you want to delete this itinerary item?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("itinerary_items")
+        .delete()
+        .eq("itinerary_id", itemId);
+
+      if (error) throw error;
+      
+      toast.success("Itinerary item deleted");
+      fetchTripData();
+    } catch (error) {
+      console.error("Error deleting itinerary item:", error);
+      toast.error("Failed to delete itinerary item");
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("expense_id", expenseId);
+
+      if (error) throw error;
+      
+      toast.success("Expense deleted");
+      fetchTripData();
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast.error("Failed to delete expense");
     }
   };
 
@@ -331,6 +370,20 @@ export default function TripDetail() {
                       {item.location_name && <p className="text-sm text-muted-foreground">{item.location_name}</p>}
                       {item.description && <p className="text-sm mt-2">{item.description}</p>}
                     </div>
+                    <div className="flex gap-2">
+                      <Link to={`/trips/${tripId}/itinerary/${item.itinerary_id}/edit`}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteItineraryItem(item.itinerary_id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -356,7 +409,7 @@ export default function TripDetail() {
             <div className="space-y-2">
               {expenses.map((expense) => (
                 <Card key={expense.expense_id} className="p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{expense.merchant}</span>
@@ -371,6 +424,20 @@ export default function TripDetail() {
                           {expense.reimbursed_status}
                         </Badge>
                       )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link to={`/expenses/${expense.expense_id}/edit`}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteExpense(expense.expense_id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </Card>
