@@ -22,9 +22,74 @@ serve(async (req) => {
     // Handle OAuth callback (GET request)
     if (req.url.includes('/callback')) {
       console.log('[GOOGLE-OAUTH] Serving callback HTML');
-      const callbackHtml = await Deno.readTextFile(
-        new URL('./callback.html', import.meta.url).pathname
-      );
+      const callbackHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Connecting to Google Calendar...</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .spinner {
+      border: 4px solid rgba(0,0,0,0.1);
+      border-left-color: #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 {
+      margin: 0;
+      color: #333;
+      font-size: 1.5rem;
+    }
+    p {
+      color: #666;
+      margin: 0.5rem 0 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Completing authorization...</h1>
+    <p>This window will close automatically.</p>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    
+    if (error) {
+      console.error('OAuth error:', error);
+      if (window.opener) {
+        window.opener.postMessage({ type: 'google-oauth-error', error }, '*');
+      }
+      setTimeout(() => window.close(), 1000);
+    } else if (code && window.opener) {
+      window.opener.postMessage({ type: 'google-oauth-success', code }, '*');
+      setTimeout(() => window.close(), 500);
+    }
+  </script>
+</body>
+</html>`;
       return new Response(callbackHtml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/html' }
       });
