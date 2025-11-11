@@ -73,7 +73,7 @@ export function TripsDashboard() {
         .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
 
       const upcomingTrips = trips
-        ?.filter((t) => new Date(t.beginning_date) >= today)
+        ?.filter((t) => new Date(t.beginning_date) >= today && !t.cancelled)
         .length || 0;
 
       setKpis({
