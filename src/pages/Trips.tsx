@@ -85,11 +85,19 @@ export default function Trips() {
       );
     }
 
-    // Time filter - default to showing only upcoming trips
-    if (timeFilter === "upcoming" || (!searchQuery && timeFilter === "all")) {
-      filtered = filtered.filter((trip) => !isPast(new Date(trip.ending_date)));
-    } else if (timeFilter === "past") {
-      filtered = filtered.filter((trip) => isPast(new Date(trip.ending_date)));
+    // Time filter
+    if (timeFilter === "cancelled") {
+      // Show only cancelled trips
+      filtered = filtered.filter((trip) => trip.cancelled);
+    } else {
+      // Exclude cancelled trips from other views
+      filtered = filtered.filter((trip) => !trip.cancelled);
+      
+      if (timeFilter === "upcoming" || timeFilter === "all") {
+        filtered = filtered.filter((trip) => !isPast(new Date(trip.ending_date)));
+      } else if (timeFilter === "past") {
+        filtered = filtered.filter((trip) => isPast(new Date(trip.ending_date)));
+      }
     }
 
     setFilteredTrips(filtered);
@@ -174,6 +182,7 @@ export default function Trips() {
             <SelectContent>
               <SelectItem value="all">Upcoming Trips</SelectItem>
               <SelectItem value="past">Past Trips</SelectItem>
+              <SelectItem value="cancelled">Cancelled Trips</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex gap-1 border rounded-lg p-1">
