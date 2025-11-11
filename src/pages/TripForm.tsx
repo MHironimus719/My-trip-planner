@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { TripAssistant } from "@/components/TripAssistant";
+import { ExpenseAssistant } from "@/components/ExpenseAssistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Crown } from "lucide-react";
+import { ArrowLeft, Crown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
 import { useCalendarSync } from "@/hooks/useCalendarSync";
@@ -30,6 +32,7 @@ export default function TripForm() {
   const [loading, setLoading] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [tripCount, setTripCount] = useState(0);
+  const [pendingExpenses, setPendingExpenses] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     trip_name: "",
     city: "",
@@ -228,12 +231,34 @@ export default function TripForm() {
 
         if (error) throw error;
         
+        // Create associated expenses
+        if (pendingExpenses.length > 0) {
+          const expensesWithTrip = pendingExpenses.map(expense => ({
+            ...expense,
+            trip_id: data.trip_id,
+            user_id: user.id
+          }));
+          
+          const { error: expensesError } = await supabase
+            .from("expenses")
+            .insert(expensesWithTrip);
+            
+          if (expensesError) {
+            console.error("Error creating expenses:", expensesError);
+            toast({
+              title: "Warning",
+              description: "Trip created but some expenses failed to save",
+              variant: "destructive",
+            });
+          }
+        }
+        
         // Sync to Google Calendar
         await syncTripToCalendar(data.trip_id, 'create');
         
         toast({
           title: "Success",
-          description: "Trip created successfully",
+          description: `Trip created successfully${pendingExpenses.length > 0 ? ` with ${pendingExpenses.length} expense(s)` : ''}`,
         });
         navigate(`/trips/${data.trip_id}`);
       }
@@ -283,6 +308,32 @@ export default function TripForm() {
       ...(extractedData.car_confirmation && { car_confirmation: extractedData.car_confirmation }),
       ...(extractedData.internal_notes && { internal_notes: extractedData.internal_notes }),
     }));
+  };
+
+  const handleExpenseExtracted = (extractedData: any) => {
+    // Add the expense to pending expenses
+    const newExpense = {
+      date: extractedData.date || formData.beginning_date || new Date().toISOString().split('T')[0],
+      merchant: extractedData.merchant || "",
+      category: extractedData.category || "Other",
+      amount: extractedData.amount || 0,
+      payment_method: extractedData.payment_method || "Personal Card",
+      currency: extractedData.currency || "USD",
+      description: extractedData.description || "",
+      reimbursable: extractedData.reimbursable !== undefined ? extractedData.reimbursable : true,
+      reimbursed_status: "Not submitted",
+    };
+    
+    setPendingExpenses(prev => [...prev, newExpense]);
+    
+    toast({
+      title: "Expense added",
+      description: "Expense will be created with the trip",
+    });
+  };
+
+  const removeExpense = (index: number) => {
+    setPendingExpenses(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -670,6 +721,48 @@ export default function TripForm() {
             )}
           </div>
         </Card>
+
+        {!isEditMode && (
+          <Card className="p-6 space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Add Expenses</h3>
+              <p className="text-sm text-muted-foreground">
+                Add expenses for this trip by uploading receipts or entering details via text
+              </p>
+            </div>
+            
+            <ExpenseAssistant onDataExtracted={handleExpenseExtracted} />
+            
+            {pendingExpenses.length > 0 && (
+              <div className="space-y-2 pt-4 border-t">
+                <h4 className="font-medium">Pending Expenses ({pendingExpenses.length})</h4>
+                <div className="space-y-2">
+                  {pendingExpenses.map((expense, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{expense.merchant}</span>
+                          <Badge variant="secondary">{expense.category}</Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          ${expense.amount.toLocaleString()} • {expense.date}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeExpense(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         <Card className="p-6 space-y-4">
           <h3 className="text-lg font-semibold">Notes</h3>

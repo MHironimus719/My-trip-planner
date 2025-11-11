@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar, MapPin, DollarSign, Plus, Search, Crown } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X } from "lucide-react";
 import { format, isFuture, isPast } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface Trip {
   trip_id: string;
@@ -24,6 +25,7 @@ interface Trip {
   invoice_sent: boolean;
   paid: boolean;
   expenses_reimbursed_status: string;
+  cancelled: boolean;
 }
 
 export default function Trips() {
@@ -32,10 +34,12 @@ export default function Trips() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { user } = useAuth();
   const { tier, isAdmin } = useSubscription();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const isFreeTierLimitReached = tier === 'free' && !isAdmin && trips.length >= 3;
 
@@ -75,7 +79,8 @@ export default function Trips() {
         (trip) =>
           trip.trip_name.toLowerCase().includes(query) ||
           trip.city?.toLowerCase().includes(query) ||
-          trip.country?.toLowerCase().includes(query)
+          trip.country?.toLowerCase().includes(query) ||
+          (trip.cancelled && "cancelled".includes(query))
       );
     }
 
@@ -87,6 +92,34 @@ export default function Trips() {
     }
 
     setFilteredTrips(filtered);
+  };
+
+  const handleCancelTrip = async (tripId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const { error } = await supabase
+        .from("trips")
+        .update({ cancelled: true })
+        .eq("trip_id", tripId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Trip cancelled",
+        description: "The trip has been marked as cancelled.",
+      });
+
+      fetchTrips();
+    } catch (error) {
+      console.error("Error cancelling trip:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel trip. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -125,21 +158,41 @@ export default function Trips() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search trips by name, city, or country..."
+            placeholder="Search trips by name, city, country, or 'cancelled'..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Select value={timeFilter} onValueChange={setTimeFilter}>
-          <SelectTrigger className="w-full md:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Upcoming Trips</SelectItem>
-            <SelectItem value="past">Past Trips</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={timeFilter} onValueChange={setTimeFilter}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Upcoming Trips</SelectItem>
+              <SelectItem value="past">Past Trips</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+              className="h-8 w-8"
+            >
+              <Grid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+              className="h-8 w-8"
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {filteredTrips.length === 0 ? (
@@ -171,57 +224,147 @@ export default function Trips() {
             )}
           </div>
         </Card>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTrips.map((trip) => (
-            <Link key={trip.trip_id} to={`/trips/${trip.trip_id}`}>
-              <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-lg line-clamp-2">{trip.trip_name}</h3>
-                    {trip.city && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>
-                          {trip.city}
-                          {trip.country && `, ${trip.country}`}
-                        </span>
+            <div key={trip.trip_id} className="relative group">
+              <Link to={`/trips/${trip.trip_id}`}>
+                <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold text-lg line-clamp-2">{trip.trip_name}</h3>
+                      {trip.city && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <MapPin className="w-3 h-3" />
+                          <span>
+                            {trip.city}
+                            {trip.country && `, ${trip.country}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        {format(new Date(trip.beginning_date), "MMM d")} -{" "}
+                        {format(new Date(trip.ending_date), "MMM d, yyyy")}
+                      </span>
+                    </div>
+
+                    {trip.fee > 0 && (
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <DollarSign className="w-4 h-4" />
+                        <span>${trip.fee.toLocaleString()}</span>
                       </div>
                     )}
-                  </div>
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      {format(new Date(trip.beginning_date), "MMM d")} -{" "}
-                      {format(new Date(trip.ending_date), "MMM d, yyyy")}
-                    </span>
-                  </div>
+                    <div className="flex flex-wrap gap-2">
+                      {trip.cancelled ? (
+                        <Badge variant="destructive">Cancelled</Badge>
+                      ) : (
+                        <>
+                          {trip.paid ? (
+                            <Badge className="bg-success text-success-foreground">Paid</Badge>
+                          ) : trip.invoice_sent ? (
+                            <Badge className="bg-warning text-warning-foreground">Invoice Sent</Badge>
+                          ) : null}
 
-                  {trip.fee > 0 && (
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <DollarSign className="w-4 h-4" />
-                      <span>${trip.fee.toLocaleString()}</span>
+                          {trip.expenses_reimbursed_status === "Yes" && (
+                            <Badge className="bg-success text-success-foreground">Reimbursed</Badge>
+                          )}
+                          {trip.expenses_reimbursed_status === "Partial" && (
+                            <Badge className="bg-warning text-warning-foreground">Partial Reimburse</Badge>
+                          )}
+                        </>
+                      )}
                     </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-2">
-                    {trip.paid ? (
-                      <Badge className="bg-success text-success-foreground">Paid</Badge>
-                    ) : trip.invoice_sent ? (
-                      <Badge className="bg-warning text-warning-foreground">Invoice Sent</Badge>
-                    ) : null}
-
-                    {trip.expenses_reimbursed_status === "Yes" && (
-                      <Badge className="bg-success text-success-foreground">Reimbursed</Badge>
-                    )}
-                    {trip.expenses_reimbursed_status === "Partial" && (
-                      <Badge className="bg-warning text-warning-foreground">Partial Reimburse</Badge>
-                    )}
                   </div>
-                </div>
-              </Card>
-            </Link>
+                </Card>
+              </Link>
+              {!trip.cancelled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={(e) => handleCancelTrip(trip.trip_id, e)}
+                  title="Cancel trip"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredTrips.map((trip) => (
+            <div key={trip.trip_id} className="relative group">
+              <Link to={`/trips/${trip.trip_id}`}>
+                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base truncate">{trip.trip_name}</h3>
+                      {trip.city && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {trip.city}
+                            {trip.country && `, ${trip.country}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-shrink-0">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span className="hidden sm:inline">
+                          {format(new Date(trip.beginning_date), "MMM d")} -{" "}
+                          {format(new Date(trip.ending_date), "MMM d, yyyy")}
+                        </span>
+                        <span className="sm:hidden">
+                          {format(new Date(trip.beginning_date), "MMM d")}
+                        </span>
+                      </div>
+
+                      {trip.fee > 0 && (
+                        <div className="flex items-center gap-1 text-sm font-medium">
+                          <DollarSign className="w-4 h-4" />
+                          <span>${trip.fee.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-1">
+                        {trip.cancelled ? (
+                          <Badge variant="destructive" className="text-xs">Cancelled</Badge>
+                        ) : (
+                          <>
+                            {trip.paid && (
+                              <Badge className="bg-success text-success-foreground text-xs">Paid</Badge>
+                            )}
+                            {!trip.paid && trip.invoice_sent && (
+                              <Badge className="bg-warning text-warning-foreground text-xs">Invoice Sent</Badge>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
+              {!trip.cancelled && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground h-8 w-8"
+                  onClick={(e) => handleCancelTrip(trip.trip_id, e)}
+                  title="Cancel trip"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
           ))}
         </div>
       )}

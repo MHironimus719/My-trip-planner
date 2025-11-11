@@ -222,6 +222,7 @@ export type Database = {
           airline: string | null
           arrival_time: string | null
           beginning_date: string
+          cancelled: boolean | null
           car_booking_service: string | null
           car_confirmation: string | null
           car_dropoff_datetime: string | null
@@ -264,6 +265,7 @@ export type Database = {
           airline?: string | null
           arrival_time?: string | null
           beginning_date: string
+          cancelled?: boolean | null
           car_booking_service?: string | null
           car_confirmation?: string | null
           car_dropoff_datetime?: string | null
@@ -306,6 +308,7 @@ export type Database = {
           airline?: string | null
           arrival_time?: string | null
           beginning_date?: string
+          cancelled?: boolean | null
           car_booking_service?: string | null
           car_confirmation?: string | null
           car_dropoff_datetime?: string | null
