@@ -15,6 +15,8 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<{ file: File; url: string; type: string }[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<any[]>([]);
+  const [extractedData, setExtractedData] = useState<any>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -132,10 +134,37 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
         }
       }
 
+      // Build user message
+      const userContent: any[] = [];
+      if (message.trim()) {
+        userContent.push({
+          type: "text",
+          text: message.trim()
+        });
+      }
+      
+      if (imageDataArray.length > 0) {
+        imageDataArray.forEach(imageData => {
+          userContent.push({
+            type: "image_url",
+            image_url: { url: imageData }
+          });
+        });
+      }
+
+      const userMessage = {
+        role: "user",
+        content: userContent.length === 1 && userContent[0].type === "text" 
+          ? userContent[0].text 
+          : userContent
+      };
+
       const { data, error } = await supabase.functions.invoke("extract-trip-info", {
         body: {
           message: message.trim(),
           images: imageDataArray,
+          conversationHistory: [...conversationHistory, userMessage],
+          currentData: extractedData
         },
       });
 
@@ -151,11 +180,31 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
       }
 
       if (data.success) {
-        onDataExtracted(data.data);
+        // Merge new data with existing data
+        const mergedData = { ...extractedData, ...data.data };
+        setExtractedData(mergedData);
+        
+        // Update conversation history
+        setConversationHistory(prev => [
+          ...prev, 
+          userMessage,
+          {
+            role: "assistant",
+            content: `Extracted and updated trip information. ${Object.keys(data.data).length} fields processed.`
+          }
+        ]);
+        
+        // Pass merged data to form
+        onDataExtracted(mergedData);
+        
         toast({
           title: "Success!",
-          description: "Trip information extracted and filled into the form",
+          description: conversationHistory.length > 0 
+            ? "Trip information updated with new details"
+            : "Trip information extracted and filled into the form",
         });
+        
+        // Clear current input but keep conversation going
         setMessage("");
         setSelectedFiles([]);
         setPreviewUrls([]);
@@ -181,7 +230,9 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
         <div className="flex-1">
           <h3 className="font-semibold text-lg">AI Trip Assistant</h3>
           <p className="text-sm text-muted-foreground">
-            Paste your trip details, booking confirmation, or upload/paste images and documents. I'll extract all the information for you.
+            {conversationHistory.length === 0 
+              ? "Paste your trip details, booking confirmation, or upload/paste images and documents. I'll extract all the information for you."
+              : "Continue adding more details, upload additional documents, or make corrections. I'll update the form with new information."}
           </p>
         </div>
       </div>
@@ -191,9 +242,9 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Example: I'm flying to San Francisco on United Airlines flight UA 123 on March 15th, 2025, returning on March 20th. Staying at the Marriott Downtown...
-
-You can also paste images directly here (Ctrl+V / Cmd+V)"
+          placeholder={conversationHistory.length === 0 
+            ? "Example: I'm flying to San Francisco on United Airlines flight UA 123 on March 15th, 2025, returning on March 20th. Staying at the Marriott Downtown...\n\nYou can also paste images directly here (Ctrl+V / Cmd+V)"
+            : "Add more details like: Actually the flight is UA 456, or upload additional documents..."}
           rows={4}
           className="resize-none"
           disabled={isProcessing}

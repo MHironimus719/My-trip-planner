@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,17 +15,17 @@ serve(async (req) => {
     // Authentication is now handled by Supabase automatically (verify_jwt enabled by default)
     // The request will only reach here if the JWT is valid
     
-    const { message, images } = await req.json();
+    const { message, images, conversationHistory = [], currentData = {} } = await req.json();
 
-    // Validate input
-    if (!message || typeof message !== 'string') {
+    // Validate input - either we have a message/images or conversationHistory
+    if ((!message || typeof message !== 'string') && conversationHistory.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Message is required and must be a string' }),
+        JSON.stringify({ error: 'Message or conversation history is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (message.length > 10000) {
+    if (message && message.length > 10000) {
       return new Response(
         JSON.stringify({ error: 'Message must be less than 10000 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -40,52 +41,44 @@ serve(async (req) => {
 
     console.log('Extracting trip info from authenticated user');
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
+
+    const systemContent = `You are a helpful assistant that extracts trip information from user messages or images. 
+
+IMPORTANT: The user may provide information iteratively across multiple messages. Always merge new information with existing data.
+
+Current extracted data: ${JSON.stringify(currentData, null, 2)}
+
+Extract as much relevant information as possible including dates, locations, flight details, hotel information, car rental details, fees, and client/event names. 
+
+Rules:
+- If information is not provided in the current message, check if it exists in currentData and preserve it
+- Only update fields when new information is explicitly provided
+- When multiple images are provided, combine all the information you find
+- If the user corrects previous information, use the new information`;
 
     const messages: any[] = [
       {
         role: "system",
-        content: "You are a helpful assistant that extracts trip information from user messages or images. Extract as much relevant information as possible including dates, locations, flight details, hotel information, car rental details, fees, and client/event names. If information is not provided, omit those fields from your response. When multiple images are provided, combine all the information you find across all images."
-      }
+        content: systemContent
+      },
+      ...conversationHistory
     ];
 
-    // Build user message with text and multiple images
-    if (images && images.length > 0) {
-      const content: any[] = [
-        { type: "text", text: message || "Please extract trip information from these images." }
-      ];
-      
-      // Add all images to the message
-      images.forEach((imageData: string) => {
-        content.push({
-          type: "image_url",
-          image_url: { url: imageData }
-        });
-      });
+    // The current user message is already in conversationHistory, so we don't add it again
 
-      messages.push({
-        role: "user",
-        content
-      });
-    } else {
-      messages.push({
-        role: "user",
-        content: message
-      });
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-5-2025-08-07",
         messages,
         tools: [
           {
@@ -137,21 +130,9 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("AI gateway request failed");
+      console.error("OpenAI API error:", response.status, errorText);
+      throw new Error(`OpenAI API request failed: ${response.status}`);
     }
 
     const data = await response.json();
