@@ -223,13 +223,13 @@ export default function TripDetail() {
                 {trip.departure_time && (
                   <div>
                     <div className="text-sm text-muted-foreground">Your Scheduled Departure</div>
-                    <div className="font-medium">{format(parseISO(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(new Date(trip.departure_time.replace(' ', 'T')), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.arrival_time && (
                   <div>
                     <div className="text-sm text-muted-foreground">Your Scheduled Arrival</div>
-                    <div className="font-medium">{format(parseISO(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(new Date(trip.arrival_time.replace(' ', 'T')), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.flight_confirmation && (
@@ -319,13 +319,13 @@ export default function TripDetail() {
                 {trip.car_pickup_datetime && (
                   <div>
                     <div className="text-sm text-muted-foreground">Pickup</div>
-                    <div className="font-medium">{format(new Date(trip.car_pickup_datetime), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(new Date(trip.car_pickup_datetime.replace(' ', 'T')), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.car_dropoff_datetime && (
                   <div>
                     <div className="text-sm text-muted-foreground">Drop-off</div>
-                    <div className="font-medium">{format(new Date(trip.car_dropoff_datetime), "MMM d, yyyy h:mm a")}</div>
+                    <div className="font-medium">{format(new Date(trip.car_dropoff_datetime.replace(' ', 'T')), "MMM d, yyyy h:mm a")}</div>
                   </div>
                 )}
                 {trip.car_confirmation && (
