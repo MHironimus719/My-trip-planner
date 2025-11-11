@@ -19,6 +19,7 @@ import { ArrowLeft, Crown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
 import { useCalendarSync } from "@/hooks/useCalendarSync";
+import { format, parseISO } from "date-fns";
 
 export default function TripForm() {
   const { tripId } = useParams();
@@ -124,8 +125,8 @@ export default function TripForm() {
           flight_needed: data.flight_needed || false,
           airline: data.airline || "",
           flight_number: data.flight_number || "",
-          departure_time: data.departure_time ? new Date(data.departure_time).toISOString().slice(0, 16) : "",
-          arrival_time: data.arrival_time ? new Date(data.arrival_time).toISOString().slice(0, 16) : "",
+          departure_time: data.departure_time ? format(parseISO(data.departure_time), "yyyy-MM-dd'T'HH:mm") : "",
+          arrival_time: data.arrival_time ? format(parseISO(data.arrival_time), "yyyy-MM-dd'T'HH:mm") : "",
           flight_confirmation: data.flight_confirmation || "",
           hotel_needed: data.hotel_needed || false,
           hotel_name: data.hotel_name || "",
@@ -139,8 +140,8 @@ export default function TripForm() {
           car_pickup_location: data.car_pickup_location || "",
           car_dropoff_location: data.car_dropoff_location || "",
           car_booking_service: data.car_booking_service || "",
-          car_pickup_datetime: data.car_pickup_datetime ? new Date(data.car_pickup_datetime).toISOString().slice(0, 16) : "",
-          car_dropoff_datetime: data.car_dropoff_datetime ? new Date(data.car_dropoff_datetime).toISOString().slice(0, 16) : "",
+          car_pickup_datetime: data.car_pickup_datetime ? format(parseISO(data.car_pickup_datetime), "yyyy-MM-dd'T'HH:mm") : "",
+          car_dropoff_datetime: data.car_dropoff_datetime ? format(parseISO(data.car_dropoff_datetime), "yyyy-MM-dd'T'HH:mm") : "",
           car_confirmation: data.car_confirmation || "",
           internal_notes: data.internal_notes || "",
         });
@@ -197,10 +198,10 @@ export default function TripForm() {
       const tripData = {
         ...formData,
         fee: validatedData.fee,
-        departure_time: formData.departure_time ? new Date(formData.departure_time).toISOString() : null,
-        arrival_time: formData.arrival_time ? new Date(formData.arrival_time).toISOString() : null,
-        car_pickup_datetime: formData.car_pickup_datetime ? new Date(formData.car_pickup_datetime).toISOString() : null,
-        car_dropoff_datetime: formData.car_dropoff_datetime ? new Date(formData.car_dropoff_datetime).toISOString() : null,
+        departure_time: formData.departure_time ? formData.departure_time + ':00.000Z' : null,
+        arrival_time: formData.arrival_time ? formData.arrival_time + ':00.000Z' : null,
+        car_pickup_datetime: formData.car_pickup_datetime ? formData.car_pickup_datetime + ':00.000Z' : null,
+        car_dropoff_datetime: formData.car_dropoff_datetime ? formData.car_dropoff_datetime + ':00.000Z' : null,
         hotel_checkin_date: formData.hotel_checkin_date || null,
         hotel_checkout_date: formData.hotel_checkout_date || null,
         user_id: user.id,
@@ -288,8 +289,8 @@ export default function TripForm() {
       ...(extractedData.flight_needed !== undefined && { flight_needed: extractedData.flight_needed }),
       ...(extractedData.airline && { airline: extractedData.airline }),
       ...(extractedData.flight_number && { flight_number: extractedData.flight_number }),
-      ...(extractedData.departure_time && { departure_time: new Date(extractedData.departure_time).toISOString().slice(0, 16) }),
-      ...(extractedData.arrival_time && { arrival_time: new Date(extractedData.arrival_time).toISOString().slice(0, 16) }),
+      ...(extractedData.departure_time && { departure_time: format(parseISO(extractedData.departure_time), "yyyy-MM-dd'T'HH:mm") }),
+      ...(extractedData.arrival_time && { arrival_time: format(parseISO(extractedData.arrival_time), "yyyy-MM-dd'T'HH:mm") }),
       ...(extractedData.flight_confirmation && { flight_confirmation: extractedData.flight_confirmation }),
       ...(extractedData.hotel_needed !== undefined && { hotel_needed: extractedData.hotel_needed }),
       ...(extractedData.hotel_name && { hotel_name: extractedData.hotel_name }),
