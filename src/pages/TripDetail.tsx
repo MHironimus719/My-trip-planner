@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { FlightStatus } from "@/components/FlightStatus";
 
 export default function TripDetail() {
@@ -268,13 +268,13 @@ export default function TripDetail() {
                 {trip.hotel_checkin_date && (
                   <div>
                     <div className="text-sm text-muted-foreground">Check-in</div>
-                    <div className="font-medium">{format(new Date(trip.hotel_checkin_date), "MMM d, yyyy")}</div>
+                    <div className="font-medium">{format(parseISO(trip.hotel_checkin_date), "MMM d, yyyy")}</div>
                   </div>
                 )}
                 {trip.hotel_checkout_date && (
                   <div>
                     <div className="text-sm text-muted-foreground">Check-out</div>
-                    <div className="font-medium">{format(new Date(trip.hotel_checkout_date), "MMM d, yyyy")}</div>
+                    <div className="font-medium">{format(parseISO(trip.hotel_checkout_date), "MMM d, yyyy")}</div>
                   </div>
                 )}
                 {trip.hotel_confirmation && (
