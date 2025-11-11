@@ -5,8 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, DollarSign } from "lucide-react";
-import { format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, DollarSign, Filter } from "lucide-react";
+import { format, parseISO } from "date-fns";
 
 interface Expense {
   expense_id: string;
@@ -27,6 +28,7 @@ interface Trip {
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trips, setTrips] = useState<Record<string, Trip>>({});
+  const [selectedTripId, setSelectedTripId] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -60,9 +62,13 @@ export default function Expenses() {
     }
   };
 
-  const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-  const reimbursableExpenses = expenses.filter((exp) => exp.reimbursable).reduce((sum, exp) => sum + Number(exp.amount), 0);
-  const reimbursedExpenses = expenses
+  const filteredExpenses = selectedTripId === "all" 
+    ? expenses 
+    : expenses.filter((exp) => exp.trip_id === selectedTripId);
+
+  const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const reimbursableExpenses = filteredExpenses.filter((exp) => exp.reimbursable).reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const reimbursedExpenses = filteredExpenses
     .filter((exp) => exp.reimbursed_status === "Fully reimbursed")
     .reduce((sum, exp) => sum + Number(exp.amount), 0);
 
@@ -89,6 +95,28 @@ export default function Expenses() {
         </Link>
       </div>
 
+      <Card className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filter by Trip:</span>
+          </div>
+          <Select value={selectedTripId} onValueChange={setSelectedTripId}>
+            <SelectTrigger className="w-[250px]">
+              <SelectValue placeholder="All Trips" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Trips</SelectItem>
+              {Object.values(trips).map((trip) => (
+                <SelectItem key={trip.trip_id} value={trip.trip_id}>
+                  {trip.trip_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Total Expenses</div>
@@ -104,14 +132,18 @@ export default function Expenses() {
         </Card>
       </div>
 
-      {expenses.length === 0 ? (
+      {filteredExpenses.length === 0 ? (
         <Card className="p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-xl font-semibold">No expenses yet</h3>
-            <p className="text-muted-foreground">Start tracking your trip expenses</p>
+            <h3 className="text-xl font-semibold">
+              {selectedTripId === "all" ? "No expenses yet" : "No expenses for this trip"}
+            </h3>
+            <p className="text-muted-foreground">
+              {selectedTripId === "all" ? "Start tracking your trip expenses" : "No expenses found for the selected trip"}
+            </p>
             <Link to="/expenses/new">
               <Button className="mt-4">
                 <Plus className="w-4 h-4 mr-2" />
@@ -122,7 +154,7 @@ export default function Expenses() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {expenses.map((expense) => (
+          {filteredExpenses.map((expense) => (
             <Card key={expense.expense_id} className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -138,7 +170,7 @@ export default function Expenses() {
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {format(new Date(expense.date), "MMM d, yyyy")}
+                    {format(parseISO(expense.date), "MMM d, yyyy")}
                   </div>
                 </div>
                 <div className="text-right">
