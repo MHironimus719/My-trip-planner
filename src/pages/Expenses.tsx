@@ -5,8 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, DollarSign, Filter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, DollarSign, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 interface Expense {
@@ -23,12 +23,14 @@ interface Expense {
 interface Trip {
   trip_id: string;
   trip_name: string;
+  client_or_event?: string;
+  city?: string;
 }
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trips, setTrips] = useState<Record<string, Trip>>({});
-  const [selectedTripId, setSelectedTripId] = useState<string>("all");
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -42,7 +44,7 @@ export default function Expenses() {
     try {
       const [expensesResult, tripsResult] = await Promise.all([
         supabase.from("expenses").select("*").order("date", { ascending: false }),
-        supabase.from("trips").select("trip_id, trip_name"),
+        supabase.from("trips").select("trip_id, trip_name, client_or_event, city"),
       ]);
 
       if (expensesResult.error) throw expensesResult.error;
@@ -62,9 +64,23 @@ export default function Expenses() {
     }
   };
 
-  const filteredExpenses = selectedTripId === "all" 
-    ? expenses 
-    : expenses.filter((exp) => exp.trip_id === selectedTripId);
+  const filteredExpenses = expenses.filter((exp) => {
+    if (!searchKeyword) return true;
+    
+    const keyword = searchKeyword.toLowerCase();
+    const trip = trips[exp.trip_id];
+    
+    // Search across trip name, event/client name, city, and expense category
+    const tripName = trip?.trip_name?.toLowerCase() || "";
+    const eventName = trip?.client_or_event?.toLowerCase() || "";
+    const city = trip?.city?.toLowerCase() || "";
+    const category = exp.category?.toLowerCase() || "";
+    
+    return tripName.includes(keyword) || 
+           eventName.includes(keyword) || 
+           city.includes(keyword) || 
+           category.includes(keyword);
+  });
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
   const reimbursableExpenses = filteredExpenses.filter((exp) => exp.reimbursable).reduce((sum, exp) => sum + Number(exp.amount), 0);
@@ -96,24 +112,14 @@ export default function Expenses() {
       </div>
 
       <Card className="p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter by Trip:</span>
-          </div>
-          <Select value={selectedTripId} onValueChange={setSelectedTripId}>
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="All Trips" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Trips</SelectItem>
-              {Object.values(trips).map((trip) => (
-                <SelectItem key={trip.trip_id} value={trip.trip_id}>
-                  {trip.trip_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-3">
+          <Search className="w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="Search by trip name, event, city, or expense type..."
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            className="flex-1"
+          />
         </div>
       </Card>
 
@@ -139,10 +145,10 @@ export default function Expenses() {
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-xl font-semibold">
-              {selectedTripId === "all" ? "No expenses yet" : "No expenses for this trip"}
+              {searchKeyword ? "No matching expenses" : "No expenses yet"}
             </h3>
             <p className="text-muted-foreground">
-              {selectedTripId === "all" ? "Start tracking your trip expenses" : "No expenses found for the selected trip"}
+              {searchKeyword ? "Try adjusting your search keywords" : "Start tracking your trip expenses"}
             </p>
             <Link to="/expenses/new">
               <Button className="mt-4">
