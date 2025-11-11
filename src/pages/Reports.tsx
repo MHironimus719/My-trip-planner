@@ -221,6 +221,8 @@ export default function Reports() {
 
     // Add receipt images section
     const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
+    console.log("Expenses with receipts:", expensesWithReceipts.length);
+    
     if (expensesWithReceipts.length > 0) {
       pdf.addPage();
       yPos = 20;
@@ -232,8 +234,16 @@ export default function Reports() {
       
       for (const expense of expensesWithReceipts) {
         try {
+          console.log("Loading receipt for:", expense.merchant, expense.receipt_url);
+          
           const receiptResponse = await fetch(expense.receipt_url!);
+          if (!receiptResponse.ok) {
+            throw new Error(`Failed to fetch receipt: ${receiptResponse.status}`);
+          }
+          
           const receiptBlob = await receiptResponse.blob();
+          console.log("Receipt blob type:", receiptBlob.type);
+          
           const receiptDataUrl = await new Promise<string>((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
@@ -242,10 +252,13 @@ export default function Reports() {
           
           // Calculate receipt image dimensions
           const img = new Image();
-          await new Promise((resolve) => {
+          await new Promise((resolve, reject) => {
             img.onload = resolve;
+            img.onerror = reject;
             img.src = receiptDataUrl;
           });
+          
+          console.log("Image loaded:", img.width, "x", img.height);
           
           const maxWidth = 170;
           const maxHeight = 200;
@@ -269,13 +282,23 @@ export default function Reports() {
           pdf.text(`${expense.merchant} - ${format(new Date(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toFixed(2)}`, 15, yPos);
           yPos += 7;
           
+          // Detect image format from blob type or data URL
+          let imageFormat = "PNG";
+          if (receiptBlob.type.includes("jpeg") || receiptBlob.type.includes("jpg")) {
+            imageFormat = "JPEG";
+          } else if (receiptBlob.type.includes("png")) {
+            imageFormat = "PNG";
+          }
+          
           // Add receipt image centered
           const xPos = (pageWidth - receiptWidth) / 2;
-          pdf.addImage(receiptDataUrl, "JPEG", xPos, yPos, receiptWidth, receiptHeight);
+          pdf.addImage(receiptDataUrl, imageFormat, xPos, yPos, receiptWidth, receiptHeight);
           yPos += receiptHeight + 15;
           
+          console.log("Receipt added successfully");
+          
         } catch (error) {
-          console.error("Error loading receipt:", error);
+          console.error("Error loading receipt for", expense.merchant, ":", error);
         }
       }
     }
