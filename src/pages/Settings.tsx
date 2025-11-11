@@ -155,18 +155,39 @@ export default function Settings() {
         if (event.data?.type === 'google-oauth-success') {
           const { code } = event.data;
           
-          // Exchange code for tokens via edge function
-          const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
-            body: { code }
-          });
+          try {
+            // Get current session for auth token
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session?.access_token) {
+              throw new Error('No active session');
+            }
 
-          if (error) {
-            sonnerToast.error('Failed to connect Google Calendar');
-          } else {
-            setCalendarConnected(true);
-            sonnerToast.success('Google Calendar connected successfully!');
+            // Exchange code for tokens via edge function
+            const { data, error } = await supabase.functions.invoke('google-calendar-oauth', {
+              body: { code },
+              headers: {
+                Authorization: `Bearer ${session.access_token}`
+              }
+            });
+
+            if (error) {
+              console.error('Calendar connection error:', error);
+              sonnerToast.error('Failed to connect Google Calendar');
+            } else {
+              setCalendarConnected(true);
+              sonnerToast.success('Google Calendar connected successfully!');
+            }
+          } catch (error: any) {
+            console.error('OAuth callback error:', error);
+            sonnerToast.error(error.message || 'Failed to connect Google Calendar');
+          } finally {
+            popup?.close();
+            window.removeEventListener('message', handleMessage);
+            setConnectingCalendar(false);
           }
-          
+        } else if (event.data?.type === 'google-oauth-error') {
+          sonnerToast.error('OAuth authorization failed');
           popup?.close();
           window.removeEventListener('message', handleMessage);
           setConnectingCalendar(false);
