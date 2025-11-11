@@ -13,7 +13,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.google-calendar-oauth]
-verify_jwt = true
+verify_jwt = false
 
 [functions.refresh-google-token]
 verify_jwt = true
