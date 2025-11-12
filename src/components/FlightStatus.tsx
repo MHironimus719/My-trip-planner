@@ -61,6 +61,8 @@ export function FlightStatus({ flightNumber, airline, departureDate }: FlightSta
       // Format date as YYYY-MM-DD for the API
       const flightDate = new Date(departureDate).toISOString().split('T')[0];
       
+      console.log("Fetching flight status:", { flightNumber, flightDate, departureDate });
+      
       const { data, error: functionError } = await supabase.functions.invoke("get-flight-status", {
         body: { flightNumber, flightDate },
       });
@@ -75,10 +77,12 @@ export function FlightStatus({ flightNumber, airline, departureDate }: FlightSta
       setFlightInfo(data);
     } catch (err: any) {
       console.error("Error fetching flight status:", err);
-      setError(err.message || "Failed to fetch flight status");
+      const errorMessage = err.message || err.error || "Failed to fetch flight status";
+      console.log("Detailed error:", JSON.stringify(err, null, 2));
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: "Could not fetch flight status. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
