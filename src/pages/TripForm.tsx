@@ -53,6 +53,11 @@ export default function TripForm() {
     departure_time: "",
     arrival_time: "",
     flight_confirmation: "",
+    return_airline: "",
+    return_flight_number: "",
+    return_departure_time: "",
+    return_arrival_time: "",
+    return_flight_confirmation: "",
     hotel_needed: false,
     hotel_name: "",
     hotel_address: "",
@@ -128,6 +133,11 @@ export default function TripForm() {
           departure_time: data.departure_time ? data.departure_time.slice(0, 16) : "",
           arrival_time: data.arrival_time ? data.arrival_time.slice(0, 16) : "",
           flight_confirmation: data.flight_confirmation || "",
+          return_airline: data.return_airline || "",
+          return_flight_number: data.return_flight_number || "",
+          return_departure_time: data.return_departure_time ? data.return_departure_time.slice(0, 16) : "",
+          return_arrival_time: data.return_arrival_time ? data.return_arrival_time.slice(0, 16) : "",
+          return_flight_confirmation: data.return_flight_confirmation || "",
           hotel_needed: data.hotel_needed || false,
           hotel_name: data.hotel_name || "",
           hotel_address: data.hotel_address || "",
@@ -200,6 +210,8 @@ export default function TripForm() {
         fee: validatedData.fee,
         departure_time: formData.departure_time ? formData.departure_time + ':00' : null,
         arrival_time: formData.arrival_time ? formData.arrival_time + ':00' : null,
+        return_departure_time: formData.return_departure_time ? formData.return_departure_time + ':00' : null,
+        return_arrival_time: formData.return_arrival_time ? formData.return_arrival_time + ':00' : null,
         car_pickup_datetime: formData.car_pickup_datetime ? formData.car_pickup_datetime + ':00' : null,
         car_dropoff_datetime: formData.car_dropoff_datetime ? formData.car_dropoff_datetime + ':00' : null,
         hotel_checkin_date: formData.hotel_checkin_date || null,
@@ -512,55 +524,115 @@ export default function TripForm() {
             </div>
 
             {formData.flight_needed && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="airline">Airline</Label>
-                  <Input
-                    id="airline"
-                    value={formData.airline}
-                    onChange={(e) => setFormData({ ...formData, airline: e.target.value })}
-                    placeholder="e.g., United Airlines"
-                  />
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Outbound Flight</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="airline">Airline</Label>
+                      <Input
+                        id="airline"
+                        value={formData.airline}
+                        onChange={(e) => setFormData({ ...formData, airline: e.target.value })}
+                        placeholder="e.g., United Airlines"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="flight_number">Flight Number</Label>
+                      <Input
+                        id="flight_number"
+                        value={formData.flight_number}
+                        onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
+                        placeholder="e.g., UA 1234"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="departure_time">Departure Time</Label>
+                      <Input
+                        id="departure_time"
+                        type="datetime-local"
+                        value={formData.departure_time}
+                        onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="arrival_time">Arrival Time</Label>
+                      <Input
+                        id="arrival_time"
+                        type="datetime-local"
+                        value={formData.arrival_time}
+                        onChange={(e) => setFormData({ ...formData, arrival_time: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="flight_confirmation">Confirmation Number</Label>
+                      <Input
+                        id="flight_confirmation"
+                        value={formData.flight_confirmation}
+                        onChange={(e) => setFormData({ ...formData, flight_confirmation: e.target.value })}
+                        placeholder="e.g., ABC123"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="flight_number">Flight Number</Label>
-                  <Input
-                    id="flight_number"
-                    value={formData.flight_number}
-                    onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
-                    placeholder="e.g., UA 1234"
-                  />
-                </div>
+                <div className="space-y-4">
+                  <h4 className="font-medium">Return Flight (Optional)</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="return_airline">Airline</Label>
+                      <Input
+                        id="return_airline"
+                        value={formData.return_airline}
+                        onChange={(e) => setFormData({ ...formData, return_airline: e.target.value })}
+                        placeholder="e.g., United Airlines"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="departure_time">Departure Time</Label>
-                  <Input
-                    id="departure_time"
-                    type="datetime-local"
-                    value={formData.departure_time}
-                    onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="return_flight_number">Flight Number</Label>
+                      <Input
+                        id="return_flight_number"
+                        value={formData.return_flight_number}
+                        onChange={(e) => setFormData({ ...formData, return_flight_number: e.target.value })}
+                        placeholder="e.g., UA 5678"
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="arrival_time">Arrival Time</Label>
-                  <Input
-                    id="arrival_time"
-                    type="datetime-local"
-                    value={formData.arrival_time}
-                    onChange={(e) => setFormData({ ...formData, arrival_time: e.target.value })}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="return_departure_time">Departure Time</Label>
+                      <Input
+                        id="return_departure_time"
+                        type="datetime-local"
+                        value={formData.return_departure_time}
+                        onChange={(e) => setFormData({ ...formData, return_departure_time: e.target.value })}
+                      />
+                    </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="flight_confirmation">Confirmation Number</Label>
-                  <Input
-                    id="flight_confirmation"
-                    value={formData.flight_confirmation}
-                    onChange={(e) => setFormData({ ...formData, flight_confirmation: e.target.value })}
-                    placeholder="e.g., ABC123"
-                  />
+                    <div className="space-y-2">
+                      <Label htmlFor="return_arrival_time">Arrival Time</Label>
+                      <Input
+                        id="return_arrival_time"
+                        type="datetime-local"
+                        value={formData.return_arrival_time}
+                        onChange={(e) => setFormData({ ...formData, return_arrival_time: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="return_flight_confirmation">Confirmation Number</Label>
+                      <Input
+                        id="return_flight_confirmation"
+                        value={formData.return_flight_confirmation}
+                        onChange={(e) => setFormData({ ...formData, return_flight_confirmation: e.target.value })}
+                        placeholder="e.g., XYZ789"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

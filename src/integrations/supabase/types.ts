@@ -257,6 +257,11 @@ export type Database = {
           invoice_number: string | null
           invoice_sent: boolean | null
           paid: boolean | null
+          return_airline: string | null
+          return_arrival_time: string | null
+          return_departure_time: string | null
+          return_flight_confirmation: string | null
+          return_flight_number: string | null
           trip_id: string
           trip_name: string
           updated_at: string | null
@@ -301,6 +306,11 @@ export type Database = {
           invoice_number?: string | null
           invoice_sent?: boolean | null
           paid?: boolean | null
+          return_airline?: string | null
+          return_arrival_time?: string | null
+          return_departure_time?: string | null
+          return_flight_confirmation?: string | null
+          return_flight_number?: string | null
           trip_id?: string
           trip_name: string
           updated_at?: string | null
@@ -345,6 +355,11 @@ export type Database = {
           invoice_number?: string | null
           invoice_sent?: boolean | null
           paid?: boolean | null
+          return_airline?: string | null
+          return_arrival_time?: string | null
+          return_departure_time?: string | null
+          return_flight_confirmation?: string | null
+          return_flight_number?: string | null
           trip_id?: string
           trip_name?: string
           updated_at?: string | null

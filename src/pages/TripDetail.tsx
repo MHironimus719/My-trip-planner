@@ -209,33 +209,86 @@ export default function TripDetail() {
             </div>
           </Card>
 
-          {trip.flight_needed && trip.flight_number && (
-            <FlightStatus flightNumber={trip.flight_number} airline={trip.airline} />
-          )}
+          {trip.flight_needed && (trip.flight_number || trip.return_flight_number) && (() => {
+            const now = new Date();
+            const outboundDeparture = trip.departure_time ? new Date(trip.departure_time) : null;
+            const returnDeparture = trip.return_departure_time ? new Date(trip.return_departure_time) : null;
+            
+            // Determine which flight to show
+            let activeFlightNumber = trip.flight_number;
+            let activeAirline = trip.airline;
+            
+            // If outbound has passed and we have a return flight, show return flight
+            if (outboundDeparture && returnDeparture && now > outboundDeparture) {
+              activeFlightNumber = trip.return_flight_number;
+              activeAirline = trip.return_airline;
+            }
+            
+            return activeFlightNumber ? (
+              <FlightStatus flightNumber={activeFlightNumber} airline={activeAirline} />
+            ) : null;
+          })()}
 
-          {trip.flight_needed && (trip.airline || trip.flight_confirmation || trip.departure_time || trip.arrival_time) && (
+          {trip.flight_needed && (trip.airline || trip.flight_confirmation || trip.departure_time || trip.arrival_time || 
+            trip.return_airline || trip.return_flight_confirmation || trip.return_departure_time || trip.return_arrival_time) && (
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Plane className="w-5 h-5" />
                 <h3 className="text-lg font-semibold">Your Flight Details</h3>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {trip.departure_time && (
+              
+              <div className="space-y-6">
+                {/* Outbound Flight */}
+                {(trip.departure_time || trip.arrival_time || trip.flight_confirmation) && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Your Scheduled Departure</div>
-                    <div className="font-medium">{format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
+                    <h4 className="font-medium mb-3">Outbound Flight</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {trip.departure_time && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Scheduled Departure</div>
+                          <div className="font-medium">{format(new Date(trip.departure_time), "MMM d, yyyy h:mm a")}</div>
+                        </div>
+                      )}
+                      {trip.arrival_time && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Scheduled Arrival</div>
+                          <div className="font-medium">{format(new Date(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
+                        </div>
+                      )}
+                      {trip.flight_confirmation && (
+                        <div className="md:col-span-2">
+                          <div className="text-sm text-muted-foreground">Confirmation Number</div>
+                          <div className="font-medium">{trip.flight_confirmation}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                {trip.arrival_time && (
+
+                {/* Return Flight */}
+                {(trip.return_departure_time || trip.return_arrival_time || trip.return_flight_confirmation) && (
                   <div>
-                    <div className="text-sm text-muted-foreground">Your Scheduled Arrival</div>
-                    <div className="font-medium">{format(new Date(trip.arrival_time), "MMM d, yyyy h:mm a")}</div>
-                  </div>
-                )}
-                {trip.flight_confirmation && (
-                  <div className="md:col-span-2">
-                    <div className="text-sm text-muted-foreground">Confirmation Number</div>
-                    <div className="font-medium">{trip.flight_confirmation}</div>
+                    <h4 className="font-medium mb-3">Return Flight</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {trip.return_departure_time && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Scheduled Departure</div>
+                          <div className="font-medium">{format(new Date(trip.return_departure_time), "MMM d, yyyy h:mm a")}</div>
+                        </div>
+                      )}
+                      {trip.return_arrival_time && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Scheduled Arrival</div>
+                          <div className="font-medium">{format(new Date(trip.return_arrival_time), "MMM d, yyyy h:mm a")}</div>
+                        </div>
+                      )}
+                      {trip.return_flight_confirmation && (
+                        <div className="md:col-span-2">
+                          <div className="text-sm text-muted-foreground">Confirmation Number</div>
+                          <div className="font-medium">{trip.return_flight_confirmation}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
