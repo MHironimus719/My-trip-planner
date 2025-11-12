@@ -16,11 +16,12 @@ import { expenseSchema } from "@/lib/validations";
 
 export default function ExpenseForm() {
   const navigate = useNavigate();
-  const { tripId: urlTripId } = useParams();
+  const { tripId: urlTripId, expenseId } = useParams();
   const [searchParams] = useSearchParams();
   const tripId = urlTripId || searchParams.get("tripId");
   const { user } = useAuth();
   const { toast } = useToast();
+  const isEditMode = !!expenseId;
 
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
@@ -41,8 +42,11 @@ export default function ExpenseForm() {
   useEffect(() => {
     if (user) {
       fetchTrips();
+      if (isEditMode && expenseId) {
+        fetchExpense();
+      }
     }
-  }, [user]);
+  }, [user, expenseId, isEditMode]);
 
   const fetchTrips = async () => {
     try {
@@ -55,6 +59,41 @@ export default function ExpenseForm() {
       setTrips(data || []);
     } catch (error) {
       console.error("Error fetching trips:", error);
+    }
+  };
+
+  const fetchExpense = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("expense_id", expenseId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          trip_id: data.trip_id || "",
+          date: data.date,
+          merchant: data.merchant,
+          category: data.category,
+          amount: data.amount.toString(),
+          payment_method: data.payment_method,
+          currency: data.currency,
+          description: data.description || "",
+          reimbursable: data.reimbursable,
+          reimbursed_status: data.reimbursed_status,
+          notes: data.notes || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching expense:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load expense",
+        variant: "destructive",
+      });
     }
   };
 
@@ -85,15 +124,25 @@ export default function ExpenseForm() {
         user_id: user.id,
       };
 
-      const { error } = await supabase
-        .from("expenses")
-        .insert([expenseData]);
+      let error;
+      if (isEditMode && expenseId) {
+        const result = await supabase
+          .from("expenses")
+          .update(expenseData)
+          .eq("expense_id", expenseId);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("expenses")
+          .insert([expenseData]);
+        error = result.error;
+      }
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Expense created successfully",
+        description: isEditMode ? "Expense updated successfully" : "Expense created successfully",
       });
 
       if (formData.trip_id) {
@@ -133,7 +182,7 @@ export default function ExpenseForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h2 className="text-3xl font-bold">Add Expense</h2>
+        <h2 className="text-3xl font-bold">{isEditMode ? "Edit Expense" : "Add Expense"}</h2>
       </div>
 
       <ExpenseAssistant onDataExtracted={handleExtractedData} />
@@ -308,7 +357,7 @@ export default function ExpenseForm() {
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Save Expense"}
+            {loading ? "Saving..." : isEditMode ? "Update Expense" : "Save Expense"}
           </Button>
         </div>
       </form>

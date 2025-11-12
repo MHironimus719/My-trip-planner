@@ -14,11 +14,12 @@ import { itineraryItemSchema } from "@/lib/validations";
 
 export default function ItineraryForm() {
   const navigate = useNavigate();
-  const { tripId: urlTripId } = useParams();
+  const { tripId: urlTripId, itemId } = useParams();
   const [searchParams] = useSearchParams();
   const tripId = urlTripId || searchParams.get("tripId");
   const { user } = useAuth();
   const { toast } = useToast();
+  const isEditMode = !!itemId;
 
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
@@ -40,8 +41,11 @@ export default function ItineraryForm() {
   useEffect(() => {
     if (user) {
       fetchTrips();
+      if (isEditMode && itemId) {
+        fetchItineraryItem();
+      }
     }
-  }, [user]);
+  }, [user, itemId, isEditMode]);
 
   const fetchTrips = async () => {
     try {
@@ -54,6 +58,42 @@ export default function ItineraryForm() {
       setTrips(data || []);
     } catch (error) {
       console.error("Error fetching trips:", error);
+    }
+  };
+
+  const fetchItineraryItem = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("itinerary_items")
+        .select("*")
+        .eq("itinerary_id", itemId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData({
+          trip_id: data.trip_id || "",
+          date: data.date,
+          start_time: data.start_time || "",
+          end_time: data.end_time || "",
+          item_type: data.item_type,
+          title: data.title,
+          description: data.description || "",
+          location_name: data.location_name || "",
+          address: data.address || "",
+          confirmation_number: data.confirmation_number || "",
+          booking_link: data.booking_link || "",
+          notes: data.notes || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching itinerary item:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load itinerary item",
+        variant: "destructive",
+      });
     }
   };
 
@@ -81,15 +121,25 @@ export default function ItineraryForm() {
 
       const validatedData = itineraryItemSchema.parse(validationData);
 
-      const { error } = await supabase
-        .from("itinerary_items")
-        .insert([{ ...formData, ...validatedData }]);
+      let error;
+      if (isEditMode && itemId) {
+        const result = await supabase
+          .from("itinerary_items")
+          .update({ ...formData, ...validatedData })
+          .eq("itinerary_id", itemId);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("itinerary_items")
+          .insert([{ ...formData, ...validatedData }]);
+        error = result.error;
+      }
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Itinerary item created successfully",
+        description: isEditMode ? "Itinerary item updated successfully" : "Itinerary item created successfully",
       });
 
       if (formData.trip_id) {
@@ -115,7 +165,7 @@ export default function ItineraryForm() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h2 className="text-3xl font-bold">Add Itinerary Item</h2>
+        <h2 className="text-3xl font-bold">{isEditMode ? "Edit Itinerary Item" : "Add Itinerary Item"}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -277,7 +327,7 @@ export default function ItineraryForm() {
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : "Save Itinerary Item"}
+            {loading ? "Saving..." : isEditMode ? "Update Itinerary Item" : "Save Itinerary Item"}
           </Button>
         </div>
       </form>

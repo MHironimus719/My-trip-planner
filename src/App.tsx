@@ -51,7 +51,9 @@ const App = () => (
                 <Route path="/trips/:tripId/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
                 <Route path="/trips/:tripId/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
                 <Route path="/itinerary/new" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
+                <Route path="/itinerary/:itemId/edit" element={<ProtectedRoute><Layout><ItineraryForm /></Layout></ProtectedRoute>} />
                 <Route path="/expenses/new" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
+                <Route path="/expenses/:expenseId/edit" element={<ProtectedRoute><Layout><ExpenseForm /></Layout></ProtectedRoute>} />
                 <Route path="/add" element={<ProtectedRoute><Layout><QuickAdd /></Layout></ProtectedRoute>} />
                 <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
