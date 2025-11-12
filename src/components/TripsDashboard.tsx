@@ -40,6 +40,7 @@ export function TripsDashboard() {
       // Calculate KPIs
       const currentYear = new Date().getFullYear();
       const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to start of day for date-only comparisons
 
       const unpaidInvoices = trips
         ?.filter((t) => t.invoice_sent && !t.paid)
