@@ -39,26 +39,30 @@ interface FlightInfo {
 interface FlightStatusProps {
   flightNumber: string;
   airline?: string;
+  departureDate: string;
 }
 
-export function FlightStatus({ flightNumber, airline }: FlightStatusProps) {
+export function FlightStatus({ flightNumber, airline, departureDate }: FlightStatusProps) {
   const [flightInfo, setFlightInfo] = useState<FlightInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (flightNumber) {
+    if (flightNumber && departureDate) {
       fetchFlightStatus();
     }
-  }, [flightNumber]);
+  }, [flightNumber, departureDate]);
 
   const fetchFlightStatus = async () => {
     setLoading(true);
     setError(null);
     try {
+      // Format date as YYYY-MM-DD for the API
+      const flightDate = new Date(departureDate).toISOString().split('T')[0];
+      
       const { data, error: functionError } = await supabase.functions.invoke("get-flight-status", {
-        body: { flightNumber },
+        body: { flightNumber, flightDate },
       });
 
       if (functionError) throw functionError;

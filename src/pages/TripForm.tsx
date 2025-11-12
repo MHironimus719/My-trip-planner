@@ -19,6 +19,7 @@ import { ArrowLeft, Crown, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
 import { useCalendarSync } from "@/hooks/useCalendarSync";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { format, parseISO } from "date-fns";
 
 export default function TripForm() {
@@ -34,7 +35,8 @@ export default function TripForm() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [tripCount, setTripCount] = useState(0);
   const [pendingExpenses, setPendingExpenses] = useState<any[]>([]);
-  const [formData, setFormData] = useState({
+  
+  const initialFormData = {
     trip_name: "",
     city: "",
     country: "",
@@ -74,13 +76,39 @@ export default function TripForm() {
     car_dropoff_datetime: "",
     car_confirmation: "",
     internal_notes: "",
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
+
+  // Initialize form persistence
+  const { clearSavedData } = useFormPersistence({
+    key: tripId || 'new',
+    formData,
+    enabled: !isEditMode, // Only persist for new trips, not edits
   });
 
   useEffect(() => {
     if (isEditMode) {
       fetchTrip();
-    } else if (user) {
-      checkTripLimit();
+    } else {
+      // Load saved draft for new trips
+      const savedDraft = localStorage.getItem(`trip-form-draft-new`);
+      if (savedDraft && user) {
+        try {
+          const parsedDraft = JSON.parse(savedDraft);
+          setFormData(parsedDraft);
+          toast({
+            title: "Draft loaded",
+            description: "Your previous form data has been restored",
+          });
+        } catch (error) {
+          console.error('Error loading draft:', error);
+        }
+      }
+      
+      if (user) {
+        checkTripLimit();
+      }
     }
   }, [tripId, user]);
 
@@ -268,6 +296,9 @@ export default function TripForm() {
         
         // Sync to Google Calendar
         await syncTripToCalendar(data.trip_id, 'create');
+        
+        // Clear the saved draft on successful submission
+        clearSavedData();
         
         toast({
           title: "Success",

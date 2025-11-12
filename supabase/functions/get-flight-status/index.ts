@@ -12,11 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    const { flightNumber } = await req.json();
+    const { flightNumber, flightDate } = await req.json();
     
     if (!flightNumber) {
       return new Response(
         JSON.stringify({ error: 'Flight number is required' }), 
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!flightDate) {
+      return new Response(
+        JSON.stringify({ error: 'Flight date is required' }), 
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -29,11 +39,11 @@ serve(async (req) => {
       throw new Error('AVIATIONSTACK_API_KEY is not configured');
     }
 
-    console.log(`Fetching flight status for: ${flightNumber}`);
+    console.log(`Fetching flight status for: ${flightNumber} on ${flightDate}`);
 
-    // AviationStack API call
+    // AviationStack API call with flight date
     const response = await fetch(
-      `http://api.aviationstack.com/v1/flights?access_key=${AVIATIONSTACK_API_KEY}&flight_iata=${flightNumber}`,
+      `http://api.aviationstack.com/v1/flights?access_key=${AVIATIONSTACK_API_KEY}&flight_iata=${flightNumber}&flight_date=${flightDate}`,
       {
         method: 'GET',
         headers: {

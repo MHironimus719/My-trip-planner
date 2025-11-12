@@ -217,15 +217,21 @@ export default function TripDetail() {
             // Determine which flight to show
             let activeFlightNumber = trip.flight_number;
             let activeAirline = trip.airline;
+            let activeDepartureDate = trip.departure_time;
             
             // If outbound has passed and we have a return flight, show return flight
             if (outboundDeparture && returnDeparture && now > outboundDeparture) {
               activeFlightNumber = trip.return_flight_number;
               activeAirline = trip.return_airline;
+              activeDepartureDate = trip.return_departure_time;
             }
             
-            return activeFlightNumber ? (
-              <FlightStatus flightNumber={activeFlightNumber} airline={activeAirline} />
+            return activeFlightNumber && activeDepartureDate ? (
+              <FlightStatus 
+                flightNumber={activeFlightNumber} 
+                airline={activeAirline}
+                departureDate={activeDepartureDate}
+              />
             ) : null;
           })()}
 
