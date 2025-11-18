@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import jsPDF from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 
@@ -161,8 +161,8 @@ export default function Reports() {
     );
     yPos += 7;
     pdf.text(
-      `Dates: ${format(new Date(selectedTrip.beginning_date), "MMM d, yyyy")} - ${format(
-        new Date(selectedTrip.ending_date),
+      `Dates: ${format(parseISO(selectedTrip.beginning_date), "MMM d, yyyy")} - ${format(
+        parseISO(selectedTrip.ending_date),
         "MMM d, yyyy"
       )}`,
       15,
@@ -192,7 +192,7 @@ export default function Reports() {
         yPos = 20;
       }
 
-      pdf.text(format(new Date(expense.date), "MMM d"), 15, yPos);
+      pdf.text(format(parseISO(expense.date), "MMM d"), 15, yPos);
       pdf.text(expense.merchant.substring(0, 20), 45, yPos);
       pdf.text(expense.category.substring(0, 15), 95, yPos);
       pdf.text(expense.payment_method?.substring(0, 12) || "N/A", 130, yPos);
@@ -279,7 +279,7 @@ export default function Reports() {
           // Add expense info
           pdf.setFontSize(10);
           pdf.setFont("helvetica", "bold");
-          pdf.text(`${expense.merchant} - ${format(new Date(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toFixed(2)}`, 15, yPos);
+          pdf.text(`${expense.merchant} - ${format(parseISO(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toFixed(2)}`, 15, yPos);
           yPos += 7;
           
           // Detect image format from blob type or data URL
@@ -340,7 +340,7 @@ export default function Reports() {
               <SelectContent>
                 {trips.map((trip) => (
                   <SelectItem key={trip.trip_id} value={trip.trip_id}>
-                    {trip.trip_name} - {format(new Date(trip.beginning_date), "MMM yyyy")}
+                    {trip.trip_name} - {format(parseISO(trip.beginning_date), "MMM yyyy")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -354,8 +354,8 @@ export default function Reports() {
                 {selectedTrip.city}, {selectedTrip.country}
               </p>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(selectedTrip.beginning_date), "MMM d, yyyy")} -{" "}
-                {format(new Date(selectedTrip.ending_date), "MMM d, yyyy")}
+                {format(parseISO(selectedTrip.beginning_date), "MMM d, yyyy")} -{" "}
+                {format(parseISO(selectedTrip.ending_date), "MMM d, yyyy")}
               </p>
             </div>
           )}
@@ -403,7 +403,7 @@ export default function Reports() {
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(expense.date), "MMM d, yyyy")} • {expense.payment_method}
+                      {format(parseISO(expense.date), "MMM d, yyyy")} • {expense.payment_method}
                     </div>
                     {expense.description && (
                       <p className="text-sm text-muted-foreground mt-2">{expense.description}</p>
