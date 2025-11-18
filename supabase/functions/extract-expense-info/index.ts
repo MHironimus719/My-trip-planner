@@ -57,12 +57,12 @@ Extract all relevant details including:
 - amount: Total amount spent (numeric value only, no currency symbols)
 - date: Date of transaction in YYYY-MM-DD format
 - category: One of: "Meal", "Flight", "Hotel", "Car", "Rideshare/Taxi", "Entertainment", "Supplies", "Fees", "Other"
-- payment_method: One of: "Personal Card", "Business Card", "Company Card", "Cash", "Other"
+- payment_method: Default to "Business Card" unless clearly specified otherwise
 - description: Brief description of the purchase
-- reimbursable: Boolean indicating if this expense should be reimbursed
+- reimbursable: Default to false (non-reimbursable) unless clearly specified otherwise
 - currency: Currency code (default to "USD" if not clear)
 
-If you're unsure about reimbursability, ask the user to clarify. Default to true if it appears to be a business expense.
+Always extract the information with these defaults. The user will verify and correct details before saving.
 Use the extract_expense_info function to return the structured data.`;
 
     const userContent: any[] = [];
@@ -111,13 +111,11 @@ Use the extract_expense_info function to return the structured data.`;
                 payment_method: {
                   type: "string",
                   enum: ["Personal Card", "Business Card", "Company Card", "Cash", "Other"],
-                  description: "Payment method used"
+                  description: "Payment method used (default: Business Card)"
                 },
                 description: { type: "string", description: "Brief description of the purchase" },
-                reimbursable: { type: "boolean", description: "Whether this expense is reimbursable" },
-                currency: { type: "string", description: "Currency code (e.g., USD)" },
-                needs_clarification: { type: "boolean", description: "Set to true if you need to ask about reimbursability" },
-                clarification_question: { type: "string", description: "Question to ask user if needs_clarification is true" }
+                reimbursable: { type: "boolean", description: "Whether this expense is reimbursable (default: false)" },
+                currency: { type: "string", description: "Currency code (e.g., USD)" }
               },
               required: ["merchant", "amount", "date", "category"],
               additionalProperties: false
