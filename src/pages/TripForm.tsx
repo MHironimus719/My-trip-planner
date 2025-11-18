@@ -255,8 +255,10 @@ export default function TripForm() {
 
         if (error) throw error;
         
-        // Sync to Google Calendar
-        await syncTripToCalendar(tripId, 'update');
+        // Sync to Google Calendar in the background (non-blocking)
+        syncTripToCalendar(tripId, 'update').catch(err => {
+          console.error('Calendar sync failed:', err);
+        });
         
         toast({
           title: "Success",
@@ -294,8 +296,10 @@ export default function TripForm() {
           }
         }
         
-        // Sync to Google Calendar
-        await syncTripToCalendar(data.trip_id, 'create');
+        // Sync to Google Calendar in the background (non-blocking)
+        syncTripToCalendar(data.trip_id, 'create').catch(err => {
+          console.error('Calendar sync failed:', err);
+        });
         
         // Clear the saved draft on successful submission
         clearSavedData();
