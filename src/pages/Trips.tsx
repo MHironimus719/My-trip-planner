@@ -89,6 +89,9 @@ export default function Trips() {
     if (timeFilter === "cancelled") {
       // Show only cancelled trips
       filtered = filtered.filter((trip) => trip.cancelled);
+    } else if (timeFilter === "unpaid") {
+      // Show only trips with unpaid invoices (exclude cancelled)
+      filtered = filtered.filter((trip) => !trip.cancelled && trip.invoice_sent && !trip.paid);
     } else {
       // Exclude cancelled trips from other views
       filtered = filtered.filter((trip) => !trip.cancelled);
@@ -182,6 +185,7 @@ export default function Trips() {
             <SelectContent>
               <SelectItem value="all">Upcoming Trips</SelectItem>
               <SelectItem value="past">Past Trips</SelectItem>
+              <SelectItem value="unpaid">Unpaid Invoices</SelectItem>
               <SelectItem value="cancelled">Cancelled Trips</SelectItem>
             </SelectContent>
           </Select>
