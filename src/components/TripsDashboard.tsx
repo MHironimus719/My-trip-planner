@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calendar, Receipt } from "lucide-react";
+import { parseISO } from "date-fns";
 
 export function TripsDashboard() {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ export function TripsDashboard() {
 
       const ytdTripEarnings = trips
         ?.filter((t) => {
-          const tripYear = new Date(t.beginning_date).getFullYear();
+          const tripYear = parseISO(t.beginning_date).getFullYear();
           return tripYear === currentYear;
         })
         .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
@@ -61,7 +62,7 @@ export function TripsDashboard() {
       const ytdNonReimbursableExpenses = expenses
         ?.filter((e) => {
           if (e.reimbursable) return false; // Only count non-reimbursable
-          const expenseYear = new Date(e.date).getFullYear();
+          const expenseYear = parseISO(e.date).getFullYear();
           return expenseYear === currentYear;
         })
         .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
@@ -75,7 +76,7 @@ export function TripsDashboard() {
 
       const upcomingTrips = trips
         ?.filter((t) => {
-          const isUpcoming = new Date(t.beginning_date) >= today;
+          const isUpcoming = parseISO(t.beginning_date) >= today;
           const isNotCancelled = !t.cancelled;
           console.log(`Trip: ${t.trip_name}, Beginning: ${t.beginning_date}, Upcoming: ${isUpcoming}, Cancelled: ${t.cancelled}, Include: ${isUpcoming && isNotCancelled}`);
           return isUpcoming && isNotCancelled;

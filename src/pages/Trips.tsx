@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X } from "lucide-react";
-import { format, isFuture, isPast } from "date-fns";
+import { format, isFuture, isPast, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface Trip {
@@ -94,9 +94,9 @@ export default function Trips() {
       filtered = filtered.filter((trip) => !trip.cancelled);
       
       if (timeFilter === "upcoming" || timeFilter === "all") {
-        filtered = filtered.filter((trip) => !isPast(new Date(trip.ending_date)));
+        filtered = filtered.filter((trip) => !isPast(parseISO(trip.ending_date)));
       } else if (timeFilter === "past") {
-        filtered = filtered.filter((trip) => isPast(new Date(trip.ending_date)));
+        filtered = filtered.filter((trip) => isPast(parseISO(trip.ending_date)));
       }
     }
 
@@ -258,8 +258,8 @@ export default function Trips() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       <span>
-                        {format(new Date(trip.beginning_date), "MMM d")} -{" "}
-                        {format(new Date(trip.ending_date), "MMM d, yyyy")}
+                        {format(parseISO(trip.beginning_date), "MMM d")} -{" "}
+                        {format(parseISO(trip.ending_date), "MMM d, yyyy")}
                       </span>
                     </div>
 
@@ -335,11 +335,11 @@ export default function Trips() {
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         <span className="hidden sm:inline">
-                          {format(new Date(trip.beginning_date), "MMM d")} -{" "}
-                          {format(new Date(trip.ending_date), "MMM d, yyyy")}
+                          {format(parseISO(trip.beginning_date), "MMM d")} -{" "}
+                          {format(parseISO(trip.ending_date), "MMM d, yyyy")}
                         </span>
                         <span className="sm:hidden">
-                          {format(new Date(trip.beginning_date), "MMM d")}
+                          {format(parseISO(trip.beginning_date), "MMM d")}
                         </span>
                       </div>
 

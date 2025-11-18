@@ -127,7 +127,7 @@ export default function TripDetail() {
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               <span>
-                {format(new Date(trip.beginning_date), "MMM d")} - {format(new Date(trip.ending_date), "MMM d, yyyy")}
+                {format(parseISO(trip.beginning_date), "MMM d")} - {format(parseISO(trip.ending_date), "MMM d, yyyy")}
               </span>
             </div>
           </div>
@@ -418,7 +418,7 @@ export default function TripDetail() {
                 <Card key={item.itinerary_id} className="p-4">
                   <div className="flex gap-4">
                     <div className="text-sm text-muted-foreground min-w-24">
-                      <div className="font-medium">{format(new Date(item.date), "MMM d")}</div>
+                      <div className="font-medium">{format(parseISO(item.date), "MMM d")}</div>
                       {item.start_time && <div>{item.start_time.slice(0, 5)}</div>}
                     </div>
                     <div className="flex-1">
@@ -474,7 +474,7 @@ export default function TripDetail() {
                         <span className="font-medium">{expense.merchant}</span>
                         <Badge variant="outline">{expense.category}</Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">{format(new Date(expense.date), "MMM d, yyyy")}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{format(parseISO(expense.date), "MMM d, yyyy")}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">${expense.amount}</div>
