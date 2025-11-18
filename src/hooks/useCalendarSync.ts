@@ -19,14 +19,20 @@ export function useCalendarSync() {
         return; // Silently skip if not connected
       }
 
-      // Sync with calendar
-      const { data, error } = await supabase.functions.invoke('sync-calendar', {
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Calendar sync timeout')), 5000);
+      });
+
+      // Race between the actual sync and timeout
+      const syncPromise = supabase.functions.invoke('sync-calendar', {
         body: { tripId, action }
       });
 
+      const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
+
       if (error) {
         console.error('Calendar sync failed:', error);
-        toast.error('Failed to sync trip to Google Calendar');
         return;
       }
 
@@ -37,6 +43,7 @@ export function useCalendarSync() {
       }
     } catch (error) {
       console.error('Calendar sync error:', error);
+      // Silently fail - don't block the UI
     }
   }, []);
 
