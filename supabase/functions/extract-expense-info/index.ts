@@ -86,7 +86,7 @@ Use the extract_expense_info function to return the structured data.`;
     }
 
     const payload = {
-      model: "gpt-5-2025-08-07",
+      model: "gpt-5-mini-2025-08-07",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent }
