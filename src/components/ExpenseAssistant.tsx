@@ -14,8 +14,6 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [needsClarification, setNeedsClarification] = useState(false);
-  const [clarificationQuestion, setClarificationQuestion] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -76,7 +74,6 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
     }
 
     setIsProcessing(true);
-    setNeedsClarification(false);
 
     try {
       const { data, error } = await supabase.functions.invoke('extract-expense-info', {
@@ -88,26 +85,15 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
 
       if (error) throw error;
 
-      if (data.data.needs_clarification) {
-        setNeedsClarification(true);
-        setClarificationQuestion(data.data.clarification_question);
-        toast({
-          title: "Clarification Needed",
-          description: data.data.clarification_question,
-        });
-        return;
-      }
-
       onDataExtracted(data.data);
       
       // Clear inputs after successful extraction
       setText("");
       setImages([]);
-      setNeedsClarification(false);
 
       toast({
         title: "Success",
-        description: "Expense information extracted successfully",
+        description: "Expense extracted! Please verify all details before saving.",
       });
     } catch (error) {
       console.error('Error extracting expense info:', error);
@@ -141,12 +127,6 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
           className="resize-none"
         />
 
-        {needsClarification && (
-          <div className="p-3 bg-warning/10 border border-warning/20 rounded-md">
-            <p className="text-sm font-medium text-warning-foreground">{clarificationQuestion}</p>
-          </div>
-        )}
-
         {images.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {images.map((image, index) => (
@@ -167,7 +147,7 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
           <input
             ref={fileInputRef}
             type="file"
@@ -182,10 +162,10 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
             type="button"
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1"
+            className="flex-1 min-w-0"
           >
-            <Camera className="w-4 h-4 mr-2" />
-            Take Photo
+            <Camera className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+            <span className="truncate">Take Photo</span>
           </Button>
 
           <Button
@@ -199,27 +179,27 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
                 setTimeout(() => input.setAttribute('capture', 'environment'), 100);
               }
             }}
-            className="flex-1"
+            className="flex-1 min-w-0"
           >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload
+            <Upload className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+            <span className="truncate">Upload</span>
           </Button>
 
           <Button
             type="button"
             onClick={handleExtract}
             disabled={isProcessing || (!text && images.length === 0)}
-            className="flex-1"
+            className="flex-1 min-w-0"
           >
             {isProcessing ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
+                <Loader2 className="w-4 h-4 mr-1 sm:mr-2 animate-spin shrink-0" />
+                <span className="truncate">Processing...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Extract
+                <Sparkles className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+                <span className="truncate">Extract</span>
               </>
             )}
           </Button>
