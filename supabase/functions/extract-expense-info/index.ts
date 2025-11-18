@@ -17,21 +17,26 @@ serve(async (req) => {
     
     const { text, images } = await req.json();
 
-    // Validate input
-    if (!text || typeof text !== 'string') {
+    // Validate that we have at least one input source
+    const hasText = text && typeof text === 'string' && text.trim().length > 0;
+    const hasImages = images && Array.isArray(images) && images.length > 0;
+
+    if (!hasText && !hasImages) {
       return new Response(
-        JSON.stringify({ error: 'Text is required and must be a string' }),
+        JSON.stringify({ error: 'Either text description or images are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (text.length > 10000) {
+    // Validate text length only if text is provided
+    if (hasText && text.length > 10000) {
       return new Response(
         JSON.stringify({ error: 'Text must be less than 10000 characters' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Validate images
     if (images && (!Array.isArray(images) || images.length > 10)) {
       return new Response(
         JSON.stringify({ error: 'Images must be an array with maximum 10 items' }),
@@ -39,7 +44,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Extracting expense info from authenticated user with text:', text, 'and', images?.length || 0, 'images');
+    console.log('Extracting expense info with', hasText ? 'text' : 'no text', 'and', images?.length || 0, 'images');
 
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
@@ -78,13 +83,6 @@ Use the extract_expense_info function to return the structured data.`;
           }
         });
       }
-    }
-
-    if (userContent.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No text or images provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
     const payload = {
