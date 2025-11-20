@@ -19,13 +19,23 @@ export default function TripDetail() {
   const [itineraryItems, setItineraryItems] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { syncItineraryToCalendar } = useCalendarSync();
+  const { syncTripToCalendar, syncItineraryToCalendar } = useCalendarSync();
 
   useEffect(() => {
     if (tripId) {
       fetchTripData();
     }
   }, [tripId]);
+
+  // Sync trip to calendar when first loaded (for newly created trips)
+  useEffect(() => {
+    if (trip && !trip.google_calendar_event_id && tripId) {
+      console.log('Syncing newly created trip to calendar');
+      syncTripToCalendar(tripId, 'create').catch(err => {
+        console.error('Failed to sync trip to calendar:', err);
+      });
+    }
+  }, [trip, tripId, syncTripToCalendar]);
 
   const fetchTripData = async () => {
     try {
