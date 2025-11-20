@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Clock, AlertTriangle, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { itineraryItemSchema } from "@/lib/validations";
 import { useCalendarSync } from "@/hooks/useCalendarSync";
@@ -25,6 +26,8 @@ export default function ItineraryForm() {
 
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
+  const [tripTimezone, setTripTimezone] = useState<string>("");
+  const [timeWarnings, setTimeWarnings] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     trip_id: tripId || "",
     date: "",
@@ -53,15 +56,59 @@ export default function ItineraryForm() {
     try {
       const { data, error } = await supabase
         .from("trips")
-        .select("trip_id, trip_name, beginning_date, ending_date")
+        .select("trip_id, trip_name, beginning_date, ending_date, timezone")
         .order("beginning_date", { ascending: false });
 
       if (error) throw error;
       setTrips(data || []);
+      
+      // If editing, fetch timezone for the current trip
+      if (formData.trip_id) {
+        const selectedTrip = data?.find(t => t.trip_id === formData.trip_id);
+        if (selectedTrip?.timezone) {
+          setTripTimezone(selectedTrip.timezone);
+        }
+      }
     } catch (error) {
       console.error("Error fetching trips:", error);
     }
   };
+
+  const validateTimes = (startTime: string, endTime: string, itemType: string) => {
+    const warnings: string[] = [];
+    
+    if (startTime && endTime) {
+      const [startHour, startMin] = startTime.split(':').map(Number);
+      const [endHour, endMin] = endTime.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
+      
+      // Check if end time is before start time
+      if (endMinutes <= startMinutes) {
+        warnings.push("End time is before or equal to start time");
+      }
+    }
+    
+    if (startTime) {
+      const [hour] = startTime.split(':').map(Number);
+      
+      // Late night meeting warning (11 PM to 5 AM)
+      if (itemType === "Meeting" && (hour >= 23 || hour < 5)) {
+        warnings.push("This meeting is scheduled late at night or very early morning. Is this correct?");
+      }
+      
+      // Early morning flight warning (before 4 AM)
+      if (itemType === "Flight" && hour < 4) {
+        warnings.push("Early morning departure - remember to plan for extra travel time to the airport");
+      }
+    }
+    
+    setTimeWarnings(warnings);
+  };
+
+  useEffect(() => {
+    validateTimes(formData.start_time, formData.end_time, formData.item_type);
+  }, [formData.start_time, formData.end_time, formData.item_type]);
 
   const fetchItineraryItem = async () => {
     try {
@@ -190,7 +237,13 @@ export default function ItineraryForm() {
               <Label htmlFor="trip_id">Trip *</Label>
               <Select
                 value={formData.trip_id}
-                onValueChange={(value) => setFormData({ ...formData, trip_id: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, trip_id: value });
+                  const selectedTrip = trips.find(t => t.trip_id === value);
+                  if (selectedTrip?.timezone) {
+                    setTripTimezone(selectedTrip.timezone);
+                  }
+                }}
                 required
               >
                 <SelectTrigger id="trip_id">
@@ -205,6 +258,23 @@ export default function ItineraryForm() {
                 </SelectContent>
               </Select>
             </div>
+
+            {tripTimezone && (
+              <Alert>
+                <MapPin className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm">
+                      Times are in <strong>{tripTimezone}</strong>
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter times as they appear locally at the destination
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="item_type">Type *</Label>
@@ -258,6 +328,9 @@ export default function ItineraryForm() {
                   value={formData.start_time}
                   onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                 />
+                {tripTimezone && (
+                  <p className="text-xs text-muted-foreground">Local time in {tripTimezone}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -268,8 +341,24 @@ export default function ItineraryForm() {
                   value={formData.end_time}
                   onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                 />
+                {tripTimezone && (
+                  <p className="text-xs text-muted-foreground">Local time in {tripTimezone}</p>
+                )}
               </div>
             </div>
+
+            {timeWarnings.length > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-1">
+                    {timeWarnings.map((warning, index) => (
+                      <p key={index} className="text-sm">{warning}</p>
+                    ))}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
