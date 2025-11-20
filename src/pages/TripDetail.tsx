@@ -471,7 +471,7 @@ export default function TripDetail() {
                       {item.description && <p className="text-sm mt-2">{item.description}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <Link to={`/trips/${tripId}/itinerary/${item.itinerary_id}/edit`}>
+                      <Link to={`/itinerary/${item.itinerary_id}/edit`}>
                         <Button variant="ghost" size="icon">
                           <Pencil className="w-4 h-4" />
                         </Button>
