@@ -331,14 +331,6 @@ export default function TripForm() {
         console.log('Clearing saved data');
         clearSavedData();
         
-        // Sync to Google Calendar in the background (non-blocking, after navigation)
-        console.log('Starting calendar sync in background');
-        setTimeout(() => {
-          syncTripToCalendar(data.trip_id, 'create').catch(err => {
-            console.error('Calendar sync failed:', err);
-          });
-        }, 100);
-        
         console.log('Showing success toast');
         toast({
           title: "Success",
@@ -346,6 +338,8 @@ export default function TripForm() {
         });
         
         console.log('Navigating to trip detail:', data.trip_id);
+        
+        // Navigate immediately - calendar sync will happen on the detail page
         navigate(`/trips/${data.trip_id}`);
       }
     } catch (error: any) {
