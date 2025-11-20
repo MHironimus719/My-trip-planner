@@ -288,16 +288,23 @@ export default function TripForm() {
         });
         navigate(`/trips/${tripId}`);
       } else {
+        console.log('Creating new trip with data:', tripData);
         const { data, error } = await supabase
           .from("trips")
           .insert([tripData])
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Trip creation error:', error);
+          throw error;
+        }
+        
+        console.log('Trip created successfully:', data);
         
         // Create associated expenses
         if (pendingExpenses.length > 0) {
+          console.log('Creating expenses:', pendingExpenses.length);
           const expensesWithTrip = pendingExpenses.map(expense => ({
             ...expense,
             trip_id: data.trip_id,
@@ -315,21 +322,30 @@ export default function TripForm() {
               description: "Trip created but some expenses failed to save",
               variant: "destructive",
             });
+          } else {
+            console.log('Expenses created successfully');
           }
         }
         
-        // Sync to Google Calendar in the background (non-blocking)
-        syncTripToCalendar(data.trip_id, 'create').catch(err => {
-          console.error('Calendar sync failed:', err);
-        });
-        
         // Clear the saved draft on successful submission
+        console.log('Clearing saved data');
         clearSavedData();
         
+        // Sync to Google Calendar in the background (non-blocking, after navigation)
+        console.log('Starting calendar sync in background');
+        setTimeout(() => {
+          syncTripToCalendar(data.trip_id, 'create').catch(err => {
+            console.error('Calendar sync failed:', err);
+          });
+        }, 100);
+        
+        console.log('Showing success toast');
         toast({
           title: "Success",
           description: `Trip created successfully${pendingExpenses.length > 0 ? ` with ${pendingExpenses.length} expense(s)` : ''}`,
         });
+        
+        console.log('Navigating to trip detail:', data.trip_id);
         navigate(`/trips/${data.trip_id}`);
       }
     } catch (error: any) {
