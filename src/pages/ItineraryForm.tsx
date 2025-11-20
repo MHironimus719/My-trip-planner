@@ -152,12 +152,15 @@ export default function ItineraryForm() {
 
     setLoading(true);
     try {
-      // Validate input data
+      // Normalize times to HH:MM for validation
+      const normalizedStart = formData.start_time ? formData.start_time.slice(0, 5) : "";
+      const normalizedEnd = formData.end_time ? formData.end_time.slice(0, 5) : "";
+
       const validationData = {
         trip_id: formData.trip_id,
         date: formData.date,
-        start_time: formData.start_time || undefined,
-        end_time: formData.end_time || undefined,
+        start_time: normalizedStart || undefined,
+        end_time: normalizedEnd || undefined,
         item_type: formData.item_type,
         title: formData.title,
         description: formData.description || undefined,
