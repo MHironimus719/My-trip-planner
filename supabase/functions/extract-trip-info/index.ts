@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.269/legacy/build/pdf.mjs";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,12 +16,12 @@ serve(async (req) => {
     // Authentication is now handled by Supabase automatically (verify_jwt enabled by default)
     // The request will only reach here if the JWT is valid
     
-    const { message, images, conversationHistory = [], currentData = {} } = await req.json();
+    const { message, images, documents = [], conversationHistory = [], currentData = {} } = await req.json();
 
-    // Validate input - either we have a message/images or conversationHistory
-    if ((!message || typeof message !== 'string') && conversationHistory.length === 0) {
+    // Validate input - either we have a message/images/documents or conversationHistory
+    if ((!message || typeof message !== 'string') && conversationHistory.length === 0 && documents.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Message or conversation history is required' }),
+        JSON.stringify({ error: 'Message, documents, or conversation history is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -39,7 +40,40 @@ serve(async (req) => {
       );
     }
 
+    if (documents && (!Array.isArray(documents) || documents.length > 10)) {
+      return new Response(
+        JSON.stringify({ error: 'Documents must be an array with maximum 10 items' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Extracting trip info from authenticated user');
+    
+    // Parse PDFs to extract text
+    let extractedPdfText = '';
+    for (const doc of documents) {
+      try {
+        const base64Data = doc.data.split(',')[1];
+        const pdfBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        const loadingTask = pdfjs.getDocument({ data: pdfBuffer });
+        const pdf = await loadingTask.promise;
+        
+        let fullText = '';
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n';
+        }
+        
+        extractedPdfText += `\n\nContent from ${doc.filename}:\n${fullText}\n`;
+        console.log(`Extracted ${fullText.length} characters from ${doc.filename}`);
+      } catch (pdfError) {
+        console.error(`Error parsing PDF ${doc.filename}:`, pdfError);
+        extractedPdfText += `\n\n[Could not parse ${doc.filename}]\n`;
+      }
+    }
     
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     
@@ -47,7 +81,7 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    const systemContent = `You are a helpful assistant that extracts trip information from user messages or images. 
+    const systemContent = `You are a helpful assistant that extracts trip information from user messages, images, or document text. 
 
 IMPORTANT: The user may provide information iteratively across multiple messages. Always merge new information with existing data.
 
@@ -58,8 +92,10 @@ Extract as much relevant information as possible including dates, locations, fli
 Rules:
 - If information is not provided in the current message, check if it exists in currentData and preserve it
 - Only update fields when new information is explicitly provided
-- When multiple images are provided, combine all the information you find
-- If the user corrects previous information, use the new information`;
+- When multiple images or documents are provided, combine all the information you find
+- If the user corrects previous information, use the new information
+- Parse dates carefully and convert them to YYYY-MM-DD format
+- Parse times carefully and convert them to ISO format (YYYY-MM-DDTHH:MM:SS)`;
 
     const messages: any[] = [
       {
@@ -69,7 +105,21 @@ Rules:
       ...conversationHistory
     ];
 
-    // The current user message is already in conversationHistory, so we don't add it again
+    // If we have PDF text, add it to the latest user message or create a new one
+    if (extractedPdfText && conversationHistory.length > 0) {
+      const lastMessage = conversationHistory[conversationHistory.length - 1];
+      if (lastMessage.role === 'user') {
+        // Append PDF text to the user's message
+        if (typeof lastMessage.content === 'string') {
+          lastMessage.content += extractedPdfText;
+        } else if (Array.isArray(lastMessage.content)) {
+          lastMessage.content.push({
+            type: "text",
+            text: extractedPdfText
+          });
+        }
+      }
+    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
