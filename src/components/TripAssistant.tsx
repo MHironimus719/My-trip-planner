@@ -120,17 +120,25 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
 
     try {
       const imageDataArray: string[] = [];
+      const documentDataArray: { data: string; filename: string; type: string }[] = [];
 
-      // Convert all image files to base64
+      // Convert all files to base64
       for (const file of selectedFiles) {
+        const reader = new FileReader();
+        const fileData = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
         if (file.type.startsWith("image/")) {
-          const reader = new FileReader();
-          const imageData = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
+          imageDataArray.push(fileData);
+        } else if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
+          documentDataArray.push({
+            data: fileData,
+            filename: file.name,
+            type: file.type || 'application/pdf'
           });
-          imageDataArray.push(imageData);
         }
       }
 
@@ -163,6 +171,7 @@ export function TripAssistant({ onDataExtracted }: TripAssistantProps) {
         body: {
           message: message.trim(),
           images: imageDataArray,
+          documents: documentDataArray,
           conversationHistory: [...conversationHistory, userMessage],
           currentData: extractedData
         },
