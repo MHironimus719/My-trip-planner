@@ -28,7 +28,7 @@ serve(async (req) => {
       );
     }
 
-    const { tripId, action } = await req.json();
+    const { tripId, action, itineraryItemId } = await req.json();
 
     // Get user's Google tokens
     const { data: profile, error: profileError } = await supabase
@@ -246,6 +246,153 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true,
           message: 'Trip removed from Google Calendar'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle itinerary item sync
+    if (action === 'sync_itinerary_item' && itineraryItemId) {
+      // Check if trip has itinerary sync enabled
+      if (!trip.sync_itinerary_to_calendar) {
+        return new Response(
+          JSON.stringify({ success: true, message: 'Itinerary sync is disabled for this trip' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get itinerary item details
+      const { data: item, error: itemError } = await supabase
+        .from('itinerary_items')
+        .select('*')
+        .eq('itinerary_id', itineraryItemId)
+        .single();
+
+      if (itemError || !item) {
+        return new Response(
+          JSON.stringify({ error: 'Itinerary item not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Build event times
+      const eventDate = item.date;
+      const startTime = item.start_time || '09:00:00';
+      const endTime = item.end_time || '10:00:00';
+      
+      const startDateTime = `${eventDate}T${startTime}`;
+      const endDateTime = `${eventDate}T${endTime}`;
+
+      // Build description
+      let description = item.description || '';
+      if (item.confirmation_number) {
+        description += `\n\nConfirmation: ${item.confirmation_number}`;
+      }
+      if (item.booking_link) {
+        description += `\n\nBooking: ${item.booking_link}`;
+      }
+      if (item.notes) {
+        description += `\n\nNotes: ${item.notes}`;
+      }
+
+      const event = {
+        summary: `[${item.item_type}] ${item.title}`,
+        description: description.trim(),
+        start: {
+          dateTime: startDateTime,
+          timeZone: 'UTC',
+        },
+        end: {
+          dateTime: endDateTime,
+          timeZone: 'UTC',
+        },
+        location: item.address || item.location_name || '',
+      };
+
+      let calendarResponse;
+      let method = 'POST';
+      let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+      // If updating and we have an event ID, use PATCH
+      if (item.google_calendar_event_id) {
+        method = 'PATCH';
+        url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.google_calendar_event_id}`;
+      }
+
+      calendarResponse = await fetch(url, {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      if (!calendarResponse.ok) {
+        const errorText = await calendarResponse.text();
+        console.error('Calendar API error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to sync itinerary item with Google Calendar', details: errorText }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const calendarEvent = await calendarResponse.json();
+
+      // Store the event ID in the itinerary item
+      if (!item.google_calendar_event_id) {
+        await supabase
+          .from('itinerary_items')
+          .update({ google_calendar_event_id: calendarEvent.id })
+          .eq('itinerary_id', itineraryItemId);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          eventId: calendarEvent.id,
+          message: 'Itinerary item synced to Google Calendar'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle itinerary item deletion
+    if (action === 'delete_itinerary_item' && itineraryItemId) {
+      // Get itinerary item to find its event ID
+      const { data: item } = await supabase
+        .from('itinerary_items')
+        .select('google_calendar_event_id')
+        .eq('itinerary_id', itineraryItemId)
+        .single();
+
+      if (item?.google_calendar_event_id) {
+        const calendarResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${item.google_calendar_event_id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        if (!calendarResponse.ok && calendarResponse.status !== 404) {
+          const errorText = await calendarResponse.text();
+          console.error('Calendar API delete error:', errorText);
+        }
+
+        // Clear the event ID from the itinerary item
+        await supabase
+          .from('itinerary_items')
+          .update({ google_calendar_event_id: null })
+          .eq('itinerary_id', itineraryItemId);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: 'Itinerary item removed from Google Calendar'
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

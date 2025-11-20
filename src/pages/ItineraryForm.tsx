@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { itineraryItemSchema } from "@/lib/validations";
+import { useCalendarSync } from "@/hooks/useCalendarSync";
 
 export default function ItineraryForm() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function ItineraryForm() {
   const tripId = urlTripId || searchParams.get("tripId");
   const { user } = useAuth();
   const { toast } = useToast();
+  const { syncItineraryToCalendar } = useCalendarSync();
   const isEditMode = !!itemId;
 
   const [loading, setLoading] = useState(false);
@@ -122,6 +124,7 @@ export default function ItineraryForm() {
       const validatedData = itineraryItemSchema.parse(validationData);
 
       let error;
+      let savedItemId = itemId;
       if (isEditMode && itemId) {
         const result = await supabase
           .from("itinerary_items")
@@ -131,11 +134,19 @@ export default function ItineraryForm() {
       } else {
         const result = await supabase
           .from("itinerary_items")
-          .insert([{ ...formData, ...validatedData }]);
+          .insert([{ ...formData, ...validatedData }])
+          .select('itinerary_id')
+          .single();
         error = result.error;
+        savedItemId = result.data?.itinerary_id;
       }
 
       if (error) throw error;
+
+      // Sync to Google Calendar if item was saved
+      if (savedItemId && formData.trip_id) {
+        await syncItineraryToCalendar(formData.trip_id, savedItemId, 'sync_itinerary_item');
+      }
 
       toast({
         title: "Success",

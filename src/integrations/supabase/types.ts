@@ -104,6 +104,7 @@ export type Database = {
           date: string
           description: string | null
           end_time: string | null
+          google_calendar_event_id: string | null
           item_type: Database["public"]["Enums"]["itinerary_item_type"] | null
           itinerary_id: string
           location_name: string | null
@@ -121,6 +122,7 @@ export type Database = {
           date: string
           description?: string | null
           end_time?: string | null
+          google_calendar_event_id?: string | null
           item_type?: Database["public"]["Enums"]["itinerary_item_type"] | null
           itinerary_id?: string
           location_name?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           date?: string
           description?: string | null
           end_time?: string | null
+          google_calendar_event_id?: string | null
           item_type?: Database["public"]["Enums"]["itinerary_item_type"] | null
           itinerary_id?: string
           location_name?: string | null
@@ -262,6 +265,7 @@ export type Database = {
           return_departure_time: string | null
           return_flight_confirmation: string | null
           return_flight_number: string | null
+          sync_itinerary_to_calendar: boolean | null
           trip_id: string
           trip_name: string
           updated_at: string | null
@@ -311,6 +315,7 @@ export type Database = {
           return_departure_time?: string | null
           return_flight_confirmation?: string | null
           return_flight_number?: string | null
+          sync_itinerary_to_calendar?: boolean | null
           trip_id?: string
           trip_name: string
           updated_at?: string | null
@@ -360,6 +365,7 @@ export type Database = {
           return_departure_time?: string | null
           return_flight_confirmation?: string | null
           return_flight_number?: string | null
+          sync_itinerary_to_calendar?: boolean | null
           trip_id?: string
           trip_name?: string
           updated_at?: string | null
