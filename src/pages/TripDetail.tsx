@@ -9,6 +9,8 @@ import { ArrowLeft, Calendar, MapPin, DollarSign, Plus, Edit, Plane, Hotel, Car,
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { FlightStatus } from "@/components/FlightStatus";
+import { useCalendarSync } from "@/hooks/useCalendarSync";
+import { Switch } from "@/components/ui/switch";
 
 export default function TripDetail() {
   const { tripId } = useParams();
@@ -17,6 +19,7 @@ export default function TripDetail() {
   const [itineraryItems, setItineraryItems] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { syncItineraryToCalendar } = useCalendarSync();
 
   useEffect(() => {
     if (tripId) {
@@ -47,6 +50,11 @@ export default function TripDetail() {
     if (!confirm("Are you sure you want to delete this itinerary item?")) return;
     
     try {
+      // Sync deletion to Google Calendar first
+      if (tripId) {
+        await syncItineraryToCalendar(tripId, itemId, 'delete_itinerary_item');
+      }
+
       const { error } = await supabase
         .from("itinerary_items")
         .delete()
@@ -59,6 +67,23 @@ export default function TripDetail() {
     } catch (error) {
       console.error("Error deleting itinerary item:", error);
       toast.error("Failed to delete itinerary item");
+    }
+  };
+
+  const handleToggleItinerarySync = async (enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("trips")
+        .update({ sync_itinerary_to_calendar: enabled })
+        .eq("trip_id", tripId);
+
+      if (error) throw error;
+
+      setTrip({ ...trip, sync_itinerary_to_calendar: enabled });
+      toast.success(enabled ? "Itinerary sync enabled" : "Itinerary sync disabled");
+    } catch (error) {
+      console.error("Error toggling itinerary sync:", error);
+      toast.error("Failed to update sync settings");
     }
   };
 
@@ -408,6 +433,22 @@ export default function TripDetail() {
               </Button>
             </Link>
           </div>
+          
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="text-sm font-medium">Sync itinerary to Google Calendar</div>
+                <div className="text-xs text-muted-foreground">
+                  Automatically add new itinerary items as calendar events
+                </div>
+              </div>
+              <Switch
+                checked={trip.sync_itinerary_to_calendar || false}
+                onCheckedChange={handleToggleItinerarySync}
+              />
+            </div>
+          </Card>
+          
           {itineraryItems.length === 0 ? (
             <Card className="p-12 text-center">
               <p className="text-muted-foreground">No itinerary items yet</p>
