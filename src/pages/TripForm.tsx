@@ -15,12 +15,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Crown, Trash2 } from "lucide-react";
+import { ArrowLeft, Crown, Trash2, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { tripSchema } from "@/lib/validations";
 import { useCalendarSync } from "@/hooks/useCalendarSync";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { format, parseISO } from "date-fns";
+import cityTimezones from "city-timezones";
 
 export default function TripForm() {
   const { tripId } = useParams();
@@ -76,9 +77,11 @@ export default function TripForm() {
     car_dropoff_datetime: "",
     car_confirmation: "",
     internal_notes: "",
+    timezone: "UTC",
   };
 
   const [formData, setFormData] = useState(initialFormData);
+  const [detectedTimezone, setDetectedTimezone] = useState<string>("");
 
   // Initialize form persistence
   const { clearSavedData } = useFormPersistence({
@@ -182,7 +185,12 @@ export default function TripForm() {
           car_dropoff_datetime: data.car_dropoff_datetime ? data.car_dropoff_datetime.slice(0, 16) : "",
           car_confirmation: data.car_confirmation || "",
           internal_notes: data.internal_notes || "",
+          timezone: data.timezone || "UTC",
         });
+        
+        if (data.timezone) {
+          setDetectedTimezone(data.timezone);
+        }
       }
     } catch (error) {
       console.error("Error fetching trip:", error);
@@ -193,6 +201,18 @@ export default function TripForm() {
       });
     }
   };
+
+  // Auto-detect timezone when city changes
+  useEffect(() => {
+    if (formData.city && !isEditMode) {
+      const timezones = cityTimezones.lookupViaCity(formData.city);
+      if (timezones && timezones.length > 0) {
+        const tz = timezones[0].timezone;
+        setDetectedTimezone(tz);
+        setFormData(prev => ({ ...prev, timezone: tz }));
+      }
+    }
+  }, [formData.city, isEditMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,6 +264,7 @@ export default function TripForm() {
         car_dropoff_datetime: formData.car_dropoff_datetime ? formData.car_dropoff_datetime + ':00' : null,
         hotel_checkin_date: formData.hotel_checkin_date || null,
         hotel_checkout_date: formData.hotel_checkout_date || null,
+        timezone: formData.timezone,
         user_id: user.id,
       };
 
@@ -438,7 +459,18 @@ export default function TripForm() {
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
               />
             </div>
+          </div>
 
+          {detectedTimezone && (
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <MapPin className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm">
+                Detected timezone: <strong>{detectedTimezone}</strong>
+              </span>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="beginning_date">Beginning Date *</Label>
               <Input
