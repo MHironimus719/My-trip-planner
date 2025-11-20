@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import * as pdfjs from "https://esm.sh/pdfjs-dist@4.0.269/legacy/build/pdf.mjs";
+import { extractText } from "https://esm.sh/unpdf@0.11.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,22 +56,15 @@ serve(async (req) => {
         const base64Data = doc.data.split(',')[1];
         const pdfBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
         
-        const loadingTask = pdfjs.getDocument({ data: pdfBuffer });
-        const pdf = await loadingTask.promise;
+        console.log(`Parsing PDF: ${doc.filename}, size: ${pdfBuffer.length} bytes`);
+        const { text } = await extractText(pdfBuffer);
         
-        let fullText = '';
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          const page = await pdf.getPage(pageNum);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(' ');
-          fullText += pageText + '\n';
-        }
-        
-        extractedPdfText += `\n\nContent from ${doc.filename}:\n${fullText}\n`;
-        console.log(`Extracted ${fullText.length} characters from ${doc.filename}`);
+        extractedPdfText += `\n\nContent from ${doc.filename}:\n${text}\n`;
+        console.log(`Extracted ${text.length} characters from ${doc.filename}`);
       } catch (pdfError) {
+        const errorMsg = pdfError instanceof Error ? pdfError.message : 'Unknown error';
         console.error(`Error parsing PDF ${doc.filename}:`, pdfError);
-        extractedPdfText += `\n\n[Could not parse ${doc.filename}]\n`;
+        extractedPdfText += `\n\n[Could not parse ${doc.filename}: ${errorMsg}]\n`;
       }
     }
     
