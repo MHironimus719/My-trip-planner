@@ -124,8 +124,8 @@ export default function ItineraryForm() {
         setFormData({
           trip_id: data.trip_id || "",
           date: data.date,
-          start_time: data.start_time || "",
-          end_time: data.end_time || "",
+          start_time: data.start_time ? data.start_time.slice(0, 5) : "",
+          end_time: data.end_time ? data.end_time.slice(0, 5) : "",
           item_type: data.item_type,
           title: data.title,
           description: data.description || "",
