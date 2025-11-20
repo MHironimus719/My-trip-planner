@@ -22,6 +22,7 @@ import { useCalendarSync } from "@/hooks/useCalendarSync";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { format, parseISO } from "date-fns";
 import cityTimezones from "city-timezones";
+import { COMMON_TIMEZONES } from "@/lib/timezones";
 
 export default function TripForm() {
   const { tripId } = useParams();
@@ -465,10 +466,32 @@ export default function TripForm() {
             <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
               <MapPin className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm">
-                Detected timezone: <strong>{detectedTimezone}</strong>
+                Auto-detected timezone: <strong>{detectedTimezone}</strong>
               </span>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Timezone *</Label>
+            <Select
+              value={formData.timezone}
+              onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+            >
+              <SelectTrigger id="timezone">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                {COMMON_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              All flight times, itinerary items, and calendar events will use this timezone
+            </p>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
