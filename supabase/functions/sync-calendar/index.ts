@@ -158,11 +158,11 @@ serve(async (req) => {
         description: description,
         start: {
           date: trip.beginning_date,
-          timeZone: 'UTC',
+          timeZone: trip.timezone || 'UTC',
         },
         end: {
           date: adjustedEndDate,
-          timeZone: 'UTC',
+          timeZone: trip.timezone || 'UTC',
         },
         location: trip.city && trip.country ? `${trip.city}, ${trip.country}` : trip.city || '',
       };
@@ -300,11 +300,11 @@ serve(async (req) => {
         description: description.trim(),
         start: {
           dateTime: startDateTime,
-          timeZone: 'UTC',
+          timeZone: trip.timezone || 'UTC',
         },
         end: {
           dateTime: endDateTime,
-          timeZone: 'UTC',
+          timeZone: trip.timezone || 'UTC',
         },
         location: item.address || item.location_name || '',
       };

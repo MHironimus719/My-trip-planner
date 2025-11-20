@@ -266,6 +266,7 @@ export type Database = {
           return_flight_confirmation: string | null
           return_flight_number: string | null
           sync_itinerary_to_calendar: boolean | null
+          timezone: string | null
           trip_id: string
           trip_name: string
           updated_at: string | null
@@ -316,6 +317,7 @@ export type Database = {
           return_flight_confirmation?: string | null
           return_flight_number?: string | null
           sync_itinerary_to_calendar?: boolean | null
+          timezone?: string | null
           trip_id?: string
           trip_name: string
           updated_at?: string | null
@@ -366,6 +368,7 @@ export type Database = {
           return_flight_confirmation?: string | null
           return_flight_number?: string | null
           sync_itinerary_to_calendar?: boolean | null
+          timezone?: string | null
           trip_id?: string
           trip_name?: string
           updated_at?: string | null
