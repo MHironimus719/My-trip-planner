@@ -85,16 +85,83 @@ serve(async (req) => {
     }
 
     if (action === 'create' || action === 'update') {
+      // Calculate adjusted end date (Google Calendar treats end dates as exclusive for all-day events)
+      const endDate = new Date(trip.ending_date);
+      endDate.setDate(endDate.getDate() + 1);
+      const adjustedEndDate = endDate.toISOString().split('T')[0];
+
+      // Build enhanced description with comprehensive trip details
+      let description = trip.trip_name;
+
+      if (trip.client_or_event) {
+        description += `\n\nClient/Event: ${trip.client_or_event}`;
+      }
+
+      // Flight details
+      if (trip.flight_needed && (trip.airline || trip.flight_number || trip.return_airline || trip.return_flight_number)) {
+        description += '\n\nFlight Details:';
+        if (trip.airline || trip.flight_number) {
+          description += `\n- Outbound: ${trip.airline || ''} ${trip.flight_number || ''}`;
+          if (trip.departure_time) {
+            description += ` departing ${trip.departure_time}`;
+          }
+        }
+        if (trip.return_airline || trip.return_flight_number) {
+          description += `\n- Return: ${trip.return_airline || ''} ${trip.return_flight_number || ''}`;
+          if (trip.return_departure_time) {
+            description += ` departing ${trip.return_departure_time}`;
+          }
+        }
+        if (trip.flight_confirmation || trip.return_flight_confirmation) {
+          description += `\n- Confirmation: ${trip.flight_confirmation || trip.return_flight_confirmation || ''}`;
+        }
+      }
+
+      // Hotel details
+      if (trip.hotel_needed && trip.hotel_name) {
+        description += '\n\nHotel:';
+        description += `\n- ${trip.hotel_name}`;
+        if (trip.hotel_checkin_date) {
+          description += `\n- Check-in: ${trip.hotel_checkin_date}`;
+        }
+        if (trip.hotel_checkout_date) {
+          description += `\n- Check-out: ${trip.hotel_checkout_date}`;
+        }
+        if (trip.hotel_confirmation) {
+          description += `\n- Confirmation: ${trip.hotel_confirmation}`;
+        }
+      }
+
+      // Car rental details
+      if (trip.car_needed && trip.car_rental_company) {
+        description += '\n\nCar Rental:';
+        description += `\n- ${trip.car_rental_company}`;
+        if (trip.car_pickup_datetime) {
+          description += `\n- Pickup: ${trip.car_pickup_datetime}`;
+        }
+        if (trip.car_dropoff_datetime) {
+          description += `\n- Dropoff: ${trip.car_dropoff_datetime}`;
+        }
+        if (trip.car_confirmation) {
+          description += `\n- Confirmation: ${trip.car_confirmation}`;
+        }
+      }
+
+      // Notes
+      if (trip.internal_notes) {
+        description += `\n\nNotes: ${trip.internal_notes}`;
+      }
+
       // Create/update calendar event
       const event = {
         summary: trip.trip_name,
-        description: `Trip to ${trip.city || 'destination'}${trip.client_or_event ? ` - ${trip.client_or_event}` : ''}`,
+        description: description,
         start: {
           date: trip.beginning_date,
           timeZone: 'UTC',
         },
         end: {
-          date: trip.ending_date,
+          date: adjustedEndDate,
           timeZone: 'UTC',
         },
         location: trip.city && trip.country ? `${trip.city}, ${trip.country}` : trip.city || '',
