@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X, Trash2, AlertTriangle } from "lucide-react";
 import { format, isFuture, isPast, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +37,7 @@ export default function Trips() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [tripToCancel, setTripToCancel] = useState<string | null>(null);
+  const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const { user } = useAuth();
   const { tier, isAdmin } = useSubscription();
   const navigate = useNavigate();
@@ -132,6 +133,35 @@ export default function Trips() {
       });
     } finally {
       setTripToCancel(null);
+    }
+  };
+
+  const handleDeleteTrip = async () => {
+    if (!tripToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from("trips")
+        .delete()
+        .eq("trip_id", tripToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: "Trip deleted",
+        description: "The trip has been permanently deleted.",
+      });
+
+      fetchTrips();
+    } catch (error) {
+      console.error("Error deleting trip:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete trip. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setTripToDelete(null);
     }
   };
 
@@ -297,7 +327,21 @@ export default function Trips() {
                   </div>
                 </Card>
               </Link>
-              {!trip.cancelled && (
+              {trip.cancelled ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTripToDelete(trip.trip_id);
+                  }}
+                  title="Delete trip permanently"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -372,7 +416,21 @@ export default function Trips() {
                   </div>
                 </Card>
               </Link>
-              {!trip.cancelled && (
+              {trip.cancelled ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm hover:bg-destructive hover:text-destructive-foreground h-8 w-8"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTripToDelete(trip.trip_id);
+                  }}
+                  title="Delete trip permanently"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              ) : (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -440,6 +498,40 @@ export default function Trips() {
             </Button>
             <AlertDialogAction onClick={handleCancelTrip}>
               Yes, Cancel Trip
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!tripToDelete} onOpenChange={(open) => !open && setTripToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Permanently Delete Trip
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-semibold">Warning: This action cannot be undone!</p>
+              <p>
+                Are you sure you want to permanently delete this trip? This will remove all associated data including:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Trip details and information</li>
+                <li>All itinerary items</li>
+                <li>All expenses and receipts</li>
+                <li>Calendar events</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setTripToDelete(null)}>
+              Cancel
+            </Button>
+            <AlertDialogAction 
+              onClick={handleDeleteTrip}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
