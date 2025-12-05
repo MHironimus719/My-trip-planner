@@ -22,6 +22,7 @@ import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
+import Admin from "./pages/Admin";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="/expenses" element={<ProtectedRoute><Layout><Expenses /></Layout></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Layout><Reports /></Layout></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><Layout><Admin /></Layout></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
