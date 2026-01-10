@@ -49,18 +49,49 @@
     <p>This window will close automatically.</p>
   </div>
   <script>
+    // Define allowed origins for secure postMessage communication
+    const ALLOWED_ORIGINS = [
+      'https://mytripplanner.net',
+      'https://www.mytripplanner.net',
+    ];
+    
+    // Add current origin and lovable domains
+    const currentOrigin = window.location.origin;
+    if (currentOrigin) {
+      if (currentOrigin.startsWith('http://localhost:') || 
+          currentOrigin.includes('.lovable.app') ||
+          currentOrigin.includes('-lovable.app')) {
+        ALLOWED_ORIGINS.push(currentOrigin);
+      }
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const error = params.get('error');
+    const state = params.get('state');
     
-    if (error) {
+    // Use current origin as target (opener should be from same domain)
+    const targetOrigin = currentOrigin;
+    
+    // Validate origin before sending
+    const isAllowedOrigin = ALLOWED_ORIGINS.some(origin => 
+      targetOrigin === origin || 
+      targetOrigin.includes('.lovable.app') ||
+      targetOrigin.includes('-lovable.app') ||
+      targetOrigin.startsWith('http://localhost:')
+    );
+    
+    if (!isAllowedOrigin) {
+      console.error('OAuth callback: Untrusted origin:', targetOrigin);
+      setTimeout(() => window.close(), 500);
+    } else if (error) {
       console.error('OAuth error:', error);
       if (window.opener) {
-        window.opener.postMessage({ type: 'google-oauth-error', error }, '*');
+        window.opener.postMessage({ type: 'google-oauth-error', error }, targetOrigin);
       }
       setTimeout(() => window.close(), 1000);
     } else if (code && window.opener) {
-      window.opener.postMessage({ type: 'google-oauth-success', code }, '*');
+      window.opener.postMessage({ type: 'google-oauth-success', code, state }, targetOrigin);
       setTimeout(() => window.close(), 500);
     }
   </script>
