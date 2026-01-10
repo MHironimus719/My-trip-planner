@@ -52,7 +52,28 @@ export default function Settings() {
       .maybeSingle();
 
     if (data?.company_logo_url) {
-      setLogoUrl(data.company_logo_url);
+      // Extract the file path from the URL to generate a signed URL
+      try {
+        const urlParts = data.company_logo_url.split('/company-logos/');
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          const { data: signedData, error } = await supabase.storage
+            .from('company-logos')
+            .createSignedUrl(filePath, 3600); // 1 hour expiry
+          
+          if (!error && signedData?.signedUrl) {
+            setLogoUrl(signedData.signedUrl);
+          } else {
+            // Fallback to stored URL if signed URL fails
+            setLogoUrl(data.company_logo_url);
+          }
+        } else {
+          setLogoUrl(data.company_logo_url);
+        }
+      } catch (error) {
+        console.error('Error generating signed URL:', error);
+        setLogoUrl(data.company_logo_url);
+      }
     }
   };
 
@@ -73,20 +94,25 @@ export default function Settings() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      // Generate signed URL for the uploaded file (bucket is now private)
+      const { data: signedData, error: signedError } = await supabase.storage
         .from("company-logos")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600); // 1 hour expiry
 
-      // Update profile
+      if (signedError) throw signedError;
+
+      // Store the file path reference in profile (not the full URL)
+      // We store a reference URL that we'll use to generate signed URLs later
+      const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/company-logos/${fileName}`;
+      
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ company_logo_url: urlData.publicUrl })
+        .update({ company_logo_url: storageUrl })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
 
-      setLogoUrl(urlData.publicUrl);
+      setLogoUrl(signedData.signedUrl);
       toast({
         title: "Logo uploaded",
         description: "Your company logo has been updated",
