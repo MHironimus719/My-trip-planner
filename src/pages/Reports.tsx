@@ -111,7 +111,22 @@ export default function Reports() {
     // Add company logo if available
     if (profile?.company_logo_url) {
       try {
-        const logoResponse = await fetch(profile.company_logo_url);
+        // Generate signed URL for the logo
+        const urlParts = profile.company_logo_url.split('/company-logos/');
+        let logoUrl = profile.company_logo_url;
+        
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          const { data: signedData, error } = await supabase.storage
+            .from('company-logos')
+            .createSignedUrl(filePath, 3600);
+          
+          if (!error && signedData?.signedUrl) {
+            logoUrl = signedData.signedUrl;
+          }
+        }
+        
+        const logoResponse = await fetch(logoUrl);
         const logoBlob = await logoResponse.blob();
         const logoDataUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
