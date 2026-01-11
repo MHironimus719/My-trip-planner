@@ -28,14 +28,14 @@ serve(async (req) => {
       );
     }
 
-    // Get current refresh token
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    // Get current refresh token from secure table
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('user_google_tokens')
       .select('google_refresh_token')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single();
 
-    if (profileError || !profile?.google_refresh_token) {
+    if (tokenError || !tokenData?.google_refresh_token) {
       return new Response(
         JSON.stringify({ error: 'No refresh token found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -47,7 +47,7 @@ serve(async (req) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        refresh_token: profile.google_refresh_token,
+        refresh_token: tokenData.google_refresh_token,
         client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
         client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
         grant_type: 'refresh_token',
@@ -66,14 +66,14 @@ serve(async (req) => {
     const { access_token, expires_in } = tokens;
     const expiresAt = new Date(Date.now() + expires_in * 1000);
 
-    // Update tokens in database
+    // Update tokens in secure table
     const { error: updateError } = await supabase
-      .from('profiles')
+      .from('user_google_tokens')
       .update({
         google_access_token: access_token,
         google_token_expires_at: expiresAt.toISOString(),
       })
-      .eq('id', user.id);
+      .eq('user_id', user.id);
 
     if (updateError) {
       console.error('Failed to update token:', updateError);

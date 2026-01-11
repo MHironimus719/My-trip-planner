@@ -118,24 +118,55 @@ serve(async (req) => {
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + expires_in * 1000);
 
-    // Store tokens in profiles table
-    console.log('[GOOGLE-OAUTH] Storing tokens in database');
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        google_access_token: access_token,
-        google_refresh_token: refresh_token,
-        google_token_expires_at: expiresAt.toISOString(),
-        google_calendar_connected: true,
-      })
-      .eq('id', user.id);
+    // Store tokens in secure user_google_tokens table (service-role only access)
+    console.log('[GOOGLE-OAUTH] Storing tokens in secure table');
+    
+    // First, try to update existing record, otherwise insert
+    const { data: existingToken } = await supabase
+      .from('user_google_tokens')
+      .select('id')
+      .eq('user_id', user.id)
+      .single();
+    
+    let tokenError;
+    if (existingToken) {
+      const { error } = await supabase
+        .from('user_google_tokens')
+        .update({
+          google_access_token: access_token,
+          google_refresh_token: refresh_token,
+          google_token_expires_at: expiresAt.toISOString(),
+        })
+        .eq('user_id', user.id);
+      tokenError = error;
+    } else {
+      const { error } = await supabase
+        .from('user_google_tokens')
+        .insert({
+          user_id: user.id,
+          google_access_token: access_token,
+          google_refresh_token: refresh_token,
+          google_token_expires_at: expiresAt.toISOString(),
+        });
+      tokenError = error;
+    }
 
-    if (updateError) {
-      console.error('[GOOGLE-OAUTH] Failed to store tokens:', updateError);
+    if (tokenError) {
+      console.error('[GOOGLE-OAUTH] Failed to store tokens:', tokenError);
       return new Response(
         JSON.stringify({ error: 'Failed to store tokens' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Update profiles to mark calendar as connected
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ google_calendar_connected: true })
+      .eq('id', user.id);
+
+    if (profileError) {
+      console.error('[GOOGLE-OAUTH] Failed to update profile:', profileError);
     }
 
     console.log('[GOOGLE-OAUTH] Success! Calendar connected for user:', user.id);

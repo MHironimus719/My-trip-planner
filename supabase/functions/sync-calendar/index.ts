@@ -30,10 +30,10 @@ serve(async (req) => {
 
     const { tripId, action, itineraryItemId } = await req.json();
 
-    // Get user's Google tokens
+    // Check if calendar is connected (from profiles table)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('google_access_token, google_token_expires_at, google_calendar_connected')
+      .select('google_calendar_connected')
       .eq('id', user.id)
       .single();
 
@@ -44,8 +44,24 @@ serve(async (req) => {
       );
     }
 
+    // Get user's Google tokens from secure table
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('user_google_tokens')
+      .select('google_access_token, google_token_expires_at')
+      .eq('user_id', user.id)
+      .single();
+
+    if (tokenError || !tokenData?.google_access_token) {
+      return new Response(
+        JSON.stringify({ error: 'Google tokens not found' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if token needs refresh
-    const expiresAt = new Date(profile.google_token_expires_at);
+    const expiresAt = new Date(tokenData.google_token_expires_at);
+    let accessToken = tokenData.google_access_token;
+    
     if (expiresAt <= new Date()) {
       // Token expired, need to refresh
       const refreshResponse = await supabase.functions.invoke('refresh-google-token', {
@@ -58,16 +74,16 @@ serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
+      // Get fresh token after refresh from secure table
+      const { data: freshTokenData } = await supabase
+        .from('user_google_tokens')
+        .select('google_access_token')
+        .eq('user_id', user.id)
+        .single();
+
+      accessToken = freshTokenData?.google_access_token;
     }
-
-    // Get fresh token after potential refresh
-    const { data: freshProfile } = await supabase
-      .from('profiles')
-      .select('google_access_token')
-      .eq('id', user.id)
-      .single();
-
-    const accessToken = freshProfile?.google_access_token;
 
     // Get trip details
     const { data: trip, error: tripError } = await supabase

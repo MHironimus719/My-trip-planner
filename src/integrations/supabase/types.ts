@@ -166,10 +166,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string | null
-          google_access_token: string | null
           google_calendar_connected: boolean | null
-          google_refresh_token: string | null
-          google_token_expires_at: string | null
           id: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -185,10 +182,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
-          google_access_token?: string | null
           google_calendar_connected?: boolean | null
-          google_refresh_token?: string | null
-          google_token_expires_at?: string | null
           id: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -204,10 +198,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
-          google_access_token?: string | null
           google_calendar_connected?: boolean | null
-          google_refresh_token?: string | null
-          google_token_expires_at?: string | null
           id?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -383,6 +374,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_google_tokens: {
+        Row: {
+          created_at: string
+          google_access_token: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

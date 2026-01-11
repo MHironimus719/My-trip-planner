@@ -130,14 +130,12 @@ export default function Settings() {
 
   const handleConnectCalendar = async () => {
     if (calendarConnected) {
-      // Disconnect
+      // Disconnect - only update the profile flag
+      // Tokens are in a secure table that frontend can't access
       try {
         const { error } = await supabase
           .from("profiles")
           .update({
-            google_access_token: null,
-            google_refresh_token: null,
-            google_token_expires_at: null,
             google_calendar_connected: false,
           })
           .eq("id", user?.id);
