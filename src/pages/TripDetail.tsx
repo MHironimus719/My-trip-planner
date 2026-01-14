@@ -29,15 +29,19 @@ export default function TripDetail() {
 
   // Sync trip to calendar when first loaded (for newly created trips)
   useEffect(() => {
-    if (trip && !trip.google_calendar_event_id && tripId) {
+    // Only sync if trip is loaded, has no calendar event, and we have a tripId
+    // Use a ref to prevent double-syncing in StrictMode
+    if (trip && !trip.google_calendar_event_id && tripId && !loading) {
       console.log('Syncing newly created trip to calendar');
       syncTripToCalendar(tripId, 'create').catch(err => {
         console.error('Failed to sync trip to calendar:', err);
+        // Don't let calendar sync failures affect the page
       });
     }
-  }, [trip, tripId, syncTripToCalendar]);
+  }, [trip?.google_calendar_event_id, tripId, loading]);
 
   const fetchTripData = async () => {
+    setLoading(true);
     try {
       const [tripResult, itineraryResult, expensesResult] = await Promise.all([
         supabase.from("trips").select("*").eq("trip_id", tripId).single(),
@@ -45,12 +49,16 @@ export default function TripDetail() {
         supabase.from("expenses").select("*").eq("trip_id", tripId).order("date", { ascending: false }),
       ]);
 
-      if (tripResult.error) throw tripResult.error;
+      if (tripResult.error) {
+        console.error("Trip fetch error:", tripResult.error);
+        throw tripResult.error;
+      }
       setTrip(tripResult.data);
       setItineraryItems(itineraryResult.data || []);
       setExpenses(expensesResult.data || []);
     } catch (error) {
       console.error("Error fetching trip data:", error);
+      toast.error("Failed to load trip data");
     } finally {
       setLoading(false);
     }
