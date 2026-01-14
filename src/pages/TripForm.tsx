@@ -327,20 +327,22 @@ export default function TripForm() {
           }
         }
         
+        // Sync to Google Calendar in the background (non-blocking)
+        syncTripToCalendar(data.trip_id, 'create').catch(err => {
+          console.error('Calendar sync failed:', err);
+        });
+        
         // Clear the saved draft on successful submission
         console.log('Clearing saved data');
         clearSavedData();
         
-        console.log('Showing success toast');
         toast({
           title: "Success",
           description: `Trip created successfully${pendingExpenses.length > 0 ? ` with ${pendingExpenses.length} expense(s)` : ''}`,
         });
         
-        console.log('Navigating to trip detail:', data.trip_id);
-        
-        // Navigate immediately - calendar sync will happen on the detail page
-        navigate(`/trips/${data.trip_id}`);
+        // Navigate to trips list page
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Error saving trip:", error);
