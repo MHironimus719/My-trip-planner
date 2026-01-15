@@ -111,19 +111,25 @@ export default function Reports() {
     // Add company logo if available
     if (profile?.company_logo_url) {
       try {
-        // Generate signed URL for the logo
-        const urlParts = profile.company_logo_url.split('/company-logos/');
-        let logoUrl = profile.company_logo_url;
+        // Generate signed URL for the logo - handle both legacy full URLs and new file paths
+        let filePath = profile.company_logo_url;
+        if (filePath.includes('/company-logos/')) {
+          filePath = filePath.split('/company-logos/')[1];
+        }
         
-        if (urlParts.length > 1) {
-          const filePath = urlParts[1];
-          const { data: signedData, error } = await supabase.storage
-            .from('company-logos')
-            .createSignedUrl(filePath, 3600);
-          
-          if (!error && signedData?.signedUrl) {
-            logoUrl = signedData.signedUrl;
-          }
+        const { data: signedData, error } = await supabase.storage
+          .from('company-logos')
+          .createSignedUrl(filePath, 3600);
+        
+        let logoUrl: string | null = null;
+        if (!error && signedData?.signedUrl) {
+          logoUrl = signedData.signedUrl;
+        } else {
+          console.error('Error generating signed URL:', error);
+        }
+        
+        if (!logoUrl) {
+          throw new Error('Could not generate signed URL for logo');
         }
         
         const logoResponse = await fetch(logoUrl);
