@@ -9,8 +9,8 @@ export function TripsDashboard() {
   const { user } = useAuth();
   const [kpis, setKpis] = useState({
     unpaidInvoices: 0,
-    paidInvoices: 0,
-    ytdEarnings: 0,
+    ytdPaidInvoices: 0,
+    ytdUnderContract: 0,
     pendingReimbursements: 0,
     upcomingTrips: 0,
   });
@@ -47,28 +47,21 @@ export function TripsDashboard() {
         ?.filter((t) => t.invoice_sent && !t.paid)
         .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
 
-      const paidInvoices = trips
-        ?.filter((t) => t.paid)
-        .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
-
-      const ytdTripEarnings = trips
+      // YTD Paid Invoices - only trips from current year that are paid
+      const ytdPaidInvoices = trips
         ?.filter((t) => {
           const tripYear = parseISO(t.beginning_date).getFullYear();
-          return tripYear === currentYear;
+          return tripYear === currentYear && t.paid;
         })
         .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
 
-      // Calculate YTD non-reimbursable expenses
-      const ytdNonReimbursableExpenses = expenses
-        ?.filter((e) => {
-          if (e.reimbursable) return false; // Only count non-reimbursable
-          const expenseYear = parseISO(e.date).getFullYear();
-          return expenseYear === currentYear;
+      // YTD Under Contract - current year trips that are not paid and not cancelled
+      const ytdUnderContract = trips
+        ?.filter((t) => {
+          const tripYear = parseISO(t.beginning_date).getFullYear();
+          return tripYear === currentYear && !t.paid && !t.cancelled;
         })
-        .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
-
-      // Calculate YTD Net Earnings (earnings minus non-reimbursable expenses)
-      const ytdNetEarnings = ytdTripEarnings - ytdNonReimbursableExpenses;
+        .reduce((sum, t) => sum + (t.fee || 0), 0) || 0;
 
       const pendingReimbursements = expenses
         ?.filter((e) => e.reimbursable && e.reimbursed_status !== "Fully reimbursed")
@@ -87,8 +80,8 @@ export function TripsDashboard() {
 
       setKpis({
         unpaidInvoices,
-        paidInvoices,
-        ytdEarnings: ytdNetEarnings,
+        ytdPaidInvoices,
+        ytdUnderContract,
         pendingReimbursements,
         upcomingTrips,
       });
@@ -108,15 +101,15 @@ export function TripsDashboard() {
       bgColor: "bg-warning/10",
     },
     {
-      title: "Paid Invoices",
-      value: `$${kpis.paidInvoices.toLocaleString()}`,
+      title: "YTD Paid Invoices",
+      value: `$${kpis.ytdPaidInvoices.toLocaleString()}`,
       icon: DollarSign,
       color: "text-success",
       bgColor: "bg-success/10",
     },
     {
-      title: "YTD Net Earnings",
-      value: `$${kpis.ytdEarnings.toLocaleString()}`,
+      title: "YTD Under Contract",
+      value: `$${kpis.ytdUnderContract.toLocaleString()}`,
       icon: TrendingUp,
       color: "text-primary",
       bgColor: "bg-primary/10",
