@@ -52,27 +52,25 @@ export default function Settings() {
       .maybeSingle();
 
     if (data?.company_logo_url) {
-      // Extract the file path from the URL to generate a signed URL
+      // Generate signed URL from the stored file path
       try {
-        const urlParts = data.company_logo_url.split('/company-logos/');
-        if (urlParts.length > 1) {
-          const filePath = urlParts[1];
-          const { data: signedData, error } = await supabase.storage
-            .from('company-logos')
-            .createSignedUrl(filePath, 3600); // 1 hour expiry
-          
-          if (!error && signedData?.signedUrl) {
-            setLogoUrl(signedData.signedUrl);
-          } else {
-            // Fallback to stored URL if signed URL fails
-            setLogoUrl(data.company_logo_url);
-          }
+        // Handle both legacy full URLs and new file paths
+        let filePath = data.company_logo_url;
+        if (filePath.includes('/company-logos/')) {
+          filePath = filePath.split('/company-logos/')[1];
+        }
+        
+        const { data: signedData, error } = await supabase.storage
+          .from('company-logos')
+          .createSignedUrl(filePath, 3600); // 1 hour expiry
+        
+        if (!error && signedData?.signedUrl) {
+          setLogoUrl(signedData.signedUrl);
         } else {
-          setLogoUrl(data.company_logo_url);
+          console.error('Error generating signed URL:', error);
         }
       } catch (error) {
         console.error('Error generating signed URL:', error);
-        setLogoUrl(data.company_logo_url);
       }
     }
   };
@@ -101,13 +99,10 @@ export default function Settings() {
 
       if (signedError) throw signedError;
 
-      // Store the file path reference in profile (not the full URL)
-      // We store a reference URL that we'll use to generate signed URLs later
-      const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/company-logos/${fileName}`;
-      
+      // Store only the file path in profile - we'll generate signed URLs on demand
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ company_logo_url: storageUrl })
+        .update({ company_logo_url: fileName })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
