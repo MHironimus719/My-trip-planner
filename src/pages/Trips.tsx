@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X, Trash2, AlertTriangle } from "lucide-react";
+import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X, Trash2, AlertTriangle, Plane, Building2, Car } from "lucide-react";
 import { format, isFuture, isPast, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +26,32 @@ interface Trip {
   paid: boolean;
   expenses_reimbursed_status: string;
   cancelled: boolean;
+  // Booking status fields
+  flight_needed: boolean;
+  hotel_needed: boolean;
+  car_needed: boolean;
+  flight_number: string | null;
+  flight_confirmation: string | null;
+  hotel_name: string | null;
+  hotel_confirmation: string | null;
+  car_rental_company: string | null;
+  car_confirmation: string | null;
 }
+
+const getBookingStatus = (trip: Trip) => ({
+  flight: {
+    needed: trip.flight_needed,
+    booked: !!(trip.flight_number || trip.flight_confirmation)
+  },
+  hotel: {
+    needed: trip.hotel_needed,
+    booked: !!(trip.hotel_name || trip.hotel_confirmation)
+  },
+  car: {
+    needed: trip.car_needed,
+    booked: !!(trip.car_rental_company || trip.car_confirmation)
+  }
+});
 
 export default function Trips() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -304,6 +329,57 @@ export default function Trips() {
                       </div>
                     )}
 
+                    {/* Booking Status Indicators */}
+                    {!trip.cancelled && (trip.flight_needed || trip.hotel_needed || trip.car_needed) && (
+                      <div className="flex items-center gap-3">
+                        {trip.flight_needed && (
+                          <div 
+                            className={`flex items-center gap-0.5 ${
+                              getBookingStatus(trip).flight.booked 
+                                ? 'text-success' 
+                                : 'text-warning'
+                            }`}
+                            title={getBookingStatus(trip).flight.booked ? 'Flight booked' : 'Flight needed - not booked'}
+                          >
+                            <Plane className="w-4 h-4" />
+                            {!getBookingStatus(trip).flight.booked && (
+                              <span className="text-xs font-bold">!</span>
+                            )}
+                          </div>
+                        )}
+                        {trip.hotel_needed && (
+                          <div 
+                            className={`flex items-center gap-0.5 ${
+                              getBookingStatus(trip).hotel.booked 
+                                ? 'text-success' 
+                                : 'text-warning'
+                            }`}
+                            title={getBookingStatus(trip).hotel.booked ? 'Hotel booked' : 'Hotel needed - not booked'}
+                          >
+                            <Building2 className="w-4 h-4" />
+                            {!getBookingStatus(trip).hotel.booked && (
+                              <span className="text-xs font-bold">!</span>
+                            )}
+                          </div>
+                        )}
+                        {trip.car_needed && (
+                          <div 
+                            className={`flex items-center gap-0.5 ${
+                              getBookingStatus(trip).car.booked 
+                                ? 'text-success' 
+                                : 'text-warning'
+                            }`}
+                            title={getBookingStatus(trip).car.booked ? 'Car booked' : 'Car rental needed - not booked'}
+                          >
+                            <Car className="w-4 h-4" />
+                            {!getBookingStatus(trip).car.booked && (
+                              <span className="text-xs font-bold">!</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-2">
                       {trip.cancelled ? (
                         <Badge variant="destructive">Cancelled</Badge>
@@ -395,6 +471,57 @@ export default function Trips() {
                         <div className="flex items-center gap-1 text-sm font-medium">
                           <DollarSign className="w-4 h-4" />
                           <span>${trip.fee.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {/* Booking Status Indicators for List View */}
+                      {!trip.cancelled && (trip.flight_needed || trip.hotel_needed || trip.car_needed) && (
+                        <div className="flex items-center gap-2">
+                          {trip.flight_needed && (
+                            <div 
+                              className={`flex items-center gap-0.5 ${
+                                getBookingStatus(trip).flight.booked 
+                                  ? 'text-success' 
+                                  : 'text-warning'
+                              }`}
+                              title={getBookingStatus(trip).flight.booked ? 'Flight booked' : 'Flight needed - not booked'}
+                            >
+                              <Plane className="w-3.5 h-3.5" />
+                              {!getBookingStatus(trip).flight.booked && (
+                                <span className="text-xs font-bold">!</span>
+                              )}
+                            </div>
+                          )}
+                          {trip.hotel_needed && (
+                            <div 
+                              className={`flex items-center gap-0.5 ${
+                                getBookingStatus(trip).hotel.booked 
+                                  ? 'text-success' 
+                                  : 'text-warning'
+                              }`}
+                              title={getBookingStatus(trip).hotel.booked ? 'Hotel booked' : 'Hotel needed - not booked'}
+                            >
+                              <Building2 className="w-3.5 h-3.5" />
+                              {!getBookingStatus(trip).hotel.booked && (
+                                <span className="text-xs font-bold">!</span>
+                              )}
+                            </div>
+                          )}
+                          {trip.car_needed && (
+                            <div 
+                              className={`flex items-center gap-0.5 ${
+                                getBookingStatus(trip).car.booked 
+                                  ? 'text-success' 
+                                  : 'text-warning'
+                              }`}
+                              title={getBookingStatus(trip).car.booked ? 'Car booked' : 'Car rental needed - not booked'}
+                            >
+                              <Car className="w-3.5 h-3.5" />
+                              {!getBookingStatus(trip).car.booked && (
+                                <span className="text-xs font-bold">!</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 
