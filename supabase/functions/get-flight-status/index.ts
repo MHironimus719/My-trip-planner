@@ -80,19 +80,22 @@ serve(async (req) => {
     const sanitizedFlightNumber = encodeURIComponent(flightNumber.toUpperCase().trim());
     const sanitizedFlightDate = encodeURIComponent(flightDate.trim());
 
+    // Log without exposing API key
     console.log(`Fetching flight status for: ${sanitizedFlightNumber} on ${sanitizedFlightDate}`);
 
-    // Note: AviationStack API requires access_key as URL parameter (their API design)
-    // We mitigate log exposure risk by using HTTPS and validated/sanitized inputs
-    const response = await fetch(
-      `https://api.aviationstack.com/v1/flights?access_key=${AVIATIONSTACK_API_KEY}&flight_iata=${sanitizedFlightNumber}&flight_date=${sanitizedFlightDate}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Build URL - AviationStack API requires access_key as URL parameter (their API design)
+    // We mitigate log exposure risk by:
+    // 1. Using HTTPS (encrypts URL in transit)
+    // 2. Sanitizing all logs to never include the API key
+    // 3. Validating/sanitizing all inputs before use
+    const apiUrl = `https://api.aviationstack.com/v1/flights?access_key=${AVIATIONSTACK_API_KEY}&flight_iata=${sanitizedFlightNumber}&flight_date=${sanitizedFlightDate}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
       console.error('AviationStack API error:', response.status);
@@ -171,10 +174,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in get-flight-status function:', error);
+    // Sanitize error logging to prevent API key exposure
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const sanitizedError = errorMessage.replace(/access_key=[^&\s]+/gi, 'access_key=REDACTED');
+    console.error('Error in get-flight-status function:', sanitizedError);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+        error: 'An error occurred while fetching flight status. Please try again.' 
       }),
       {
         status: 500,
