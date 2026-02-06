@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar, MapPin, DollarSign, Plus, Search, Crown, Grid, List, X, Trash2, AlertTriangle, Plane, Building2, Car } from "lucide-react";
-import { format, isFuture, isPast, parseISO } from "date-fns";
+import { format, isFuture, isPast, parseISO, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface Trip {
@@ -123,9 +123,10 @@ export default function Trips() {
       filtered = filtered.filter((trip) => !trip.cancelled);
       
       if (timeFilter === "upcoming" || timeFilter === "all") {
-        filtered = filtered.filter((trip) => !isPast(parseISO(trip.ending_date)));
+        // Add 1 day to ending_date so trips stay in "upcoming" through their final day
+        filtered = filtered.filter((trip) => !isPast(addDays(parseISO(trip.ending_date), 1)));
       } else if (timeFilter === "past") {
-        filtered = filtered.filter((trip) => isPast(parseISO(trip.ending_date)));
+        filtered = filtered.filter((trip) => isPast(addDays(parseISO(trip.ending_date), 1)));
       }
     }
 
