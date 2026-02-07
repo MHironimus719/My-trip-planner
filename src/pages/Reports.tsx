@@ -29,6 +29,30 @@ interface Expense {
   payment_method: string;
 }
 
+// Helper function to compress images before embedding in PDF
+const compressImage = (dataUrl: string, maxWidth: number, quality: number): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = dataUrl;
+  });
+};
+
 export default function Reports() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<string>("");
@@ -108,7 +132,8 @@ export default function Reports() {
     const pageWidth = pdf.internal.pageSize.getWidth();
     let yPos = 20;
 
-    // Add company logo if available
+    // Add company logo if available, inline with title
+    let logoWidth = 0;
     if (profile?.company_logo_url) {
       try {
         // Generate signed URL for the logo - handle both legacy full URLs and new file paths
@@ -140,34 +165,39 @@ export default function Reports() {
           reader.readAsDataURL(logoBlob);
         });
         
+        // Compress the logo to reduce file size (max 200px width, 0.7 quality)
+        const compressedLogo = await compressImage(logoDataUrl, 200, 0.7);
+        
         // Calculate proper logo dimensions maintaining aspect ratio
         const img = new Image();
         await new Promise((resolve) => {
           img.onload = resolve;
-          img.src = logoDataUrl;
+          img.src = compressedLogo;
         });
         
-        const maxWidth = 40;
-        const maxHeight = 30;
-        let logoWidth = maxWidth;
-        let logoHeight = (img.height / img.width) * maxWidth;
+        // Smaller logo: max 15x12mm
+        const maxLogoWidth = 15;
+        const maxLogoHeight = 12;
+        logoWidth = maxLogoWidth;
+        let logoHeight = (img.height / img.width) * maxLogoWidth;
         
-        if (logoHeight > maxHeight) {
-          logoHeight = maxHeight;
-          logoWidth = (img.width / img.height) * maxHeight;
+        if (logoHeight > maxLogoHeight) {
+          logoHeight = maxLogoHeight;
+          logoWidth = (img.width / img.height) * maxLogoHeight;
         }
         
-        pdf.addImage(logoDataUrl, "PNG", 15, yPos, logoWidth, logoHeight);
-        yPos += logoHeight + 5;
+        // Position logo at left, inline with title
+        pdf.addImage(compressedLogo, "JPEG", 15, yPos - 8, logoWidth, logoHeight);
       } catch (error) {
         console.error("Error loading logo:", error);
       }
     }
 
-    // Title
+    // Title - positioned to the right of logo if present
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Detailed Expense Report", pageWidth / 2, yPos, { align: "center" });
+    const titleX = logoWidth > 0 ? 15 + logoWidth + 5 : 15;
+    pdf.text("Detailed Expense Report", titleX, yPos);
     yPos += 15;
 
     // Trip info
@@ -191,14 +221,14 @@ export default function Reports() {
     );
     yPos += 15;
 
-    // Table header
+    // Table header - adjusted column positions for better spacing
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "bold");
     pdf.text("Date", 15, yPos);
-    pdf.text("Merchant", 45, yPos);
-    pdf.text("Category", 95, yPos);
-    pdf.text("Payment", 130, yPos);
-    pdf.text("Amount", 170, yPos);
+    pdf.text("Merchant", 40, yPos);
+    pdf.text("Category", 85, yPos);
+    pdf.text("Payment", 120, yPos);
+    pdf.text("Amount", 165, yPos);
     yPos += 3;
     pdf.line(15, yPos, 195, yPos);
     yPos += 7;
@@ -214,10 +244,10 @@ export default function Reports() {
       }
 
       pdf.text(format(parseISO(expense.date), "MMM d"), 15, yPos);
-      pdf.text(expense.merchant.substring(0, 20), 45, yPos);
-      pdf.text(expense.category.substring(0, 15), 95, yPos);
-      pdf.text(expense.payment_method?.substring(0, 12) || "N/A", 130, yPos);
-      pdf.text(`$${Number(expense.amount).toFixed(2)}`, 170, yPos);
+      pdf.text(expense.merchant.substring(0, 20), 40, yPos);
+      pdf.text(expense.category.substring(0, 15), 85, yPos);
+      pdf.text(expense.payment_method?.substring(0, 15) || "N/A", 120, yPos);
+      pdf.text(`$${Number(expense.amount).toFixed(2)}`, 165, yPos);
 
       total += Number(expense.amount);
       yPos += 7;
@@ -225,7 +255,7 @@ export default function Reports() {
       if (expense.description) {
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
-        pdf.text(expense.description.substring(0, 60), 45, yPos);
+        pdf.text(expense.description.substring(0, 60), 40, yPos);
         pdf.setFontSize(10);
         pdf.setTextColor(0, 0, 0);
         yPos += 5;
@@ -237,8 +267,8 @@ export default function Reports() {
     pdf.line(15, yPos, 195, yPos);
     yPos += 7;
     pdf.setFont("helvetica", "bold");
-    pdf.text("TOTAL:", 130, yPos);
-    pdf.text(`$${total.toFixed(2)}`, 170, yPos);
+    pdf.text("TOTAL:", 120, yPos);
+    pdf.text(`$${total.toFixed(2)}`, 165, yPos);
 
     // Add receipt images section
     const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
