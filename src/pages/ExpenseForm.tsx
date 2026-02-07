@@ -25,6 +25,7 @@ export default function ExpenseForm() {
 
   const [loading, setLoading] = useState(false);
   const [trips, setTrips] = useState<any[]>([]);
+  const [pendingImages, setPendingImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     trip_id: tripId || "",
     date: new Date().toISOString().split('T')[0],
@@ -124,7 +125,9 @@ export default function ExpenseForm() {
         user_id: user.id,
       };
 
+      let resultExpenseId = expenseId;
       let error;
+
       if (isEditMode && expenseId) {
         const result = await supabase
           .from("expenses")
@@ -134,11 +137,55 @@ export default function ExpenseForm() {
       } else {
         const result = await supabase
           .from("expenses")
-          .insert([expenseData]);
+          .insert([expenseData])
+          .select("expense_id")
+          .single();
         error = result.error;
+        resultExpenseId = result.data?.expense_id;
       }
 
       if (error) throw error;
+
+      // Upload receipt image if we have pending images
+      if (pendingImages.length > 0 && resultExpenseId && user.id) {
+        try {
+          // Take the first image (we store one receipt per expense)
+          const imageDataUrl = pendingImages[0];
+          
+          // Convert base64 to blob
+          const response = await fetch(imageDataUrl);
+          const blob = await response.blob();
+          
+          // Upload to storage
+          const filePath = `${user.id}/${resultExpenseId}/receipt.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from("expense-receipts")
+            .upload(filePath, blob, {
+              contentType: "image/jpeg",
+              upsert: true,
+            });
+
+          if (uploadError) {
+            console.error("Error uploading receipt:", uploadError);
+          } else {
+            // Get signed URL (bucket is private)
+            const { data: signedUrlData } = await supabase.storage
+              .from("expense-receipts")
+              .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year expiry
+
+            if (signedUrlData?.signedUrl) {
+              // Update expense with receipt URL
+              await supabase
+                .from("expenses")
+                .update({ receipt_url: signedUrlData.signedUrl })
+                .eq("expense_id", resultExpenseId);
+            }
+          }
+        } catch (uploadErr) {
+          console.error("Error processing receipt image:", uploadErr);
+          // Don't fail the whole operation if image upload fails
+        }
+      }
 
       toast({
         title: "Success",
@@ -176,6 +223,10 @@ export default function ExpenseForm() {
     }));
   };
 
+  const handleImagesReady = (images: string[]) => {
+    setPendingImages(images);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -185,7 +236,7 @@ export default function ExpenseForm() {
         <h2 className="text-3xl font-bold">{isEditMode ? "Edit Expense" : "Add Expense"}</h2>
       </div>
 
-      <ExpenseAssistant onDataExtracted={handleExtractedData} />
+      <ExpenseAssistant onDataExtracted={handleExtractedData} onImagesReady={handleImagesReady} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card className="p-6 space-y-6">
