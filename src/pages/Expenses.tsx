@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, DollarSign, Search } from "lucide-react";
+import { Plus, DollarSign, Search, Pencil, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 
 interface Expense {
@@ -32,7 +43,44 @@ export default function Expenses() {
   const [trips, setTrips] = useState<Record<string, Trip>>({});
   const [searchKeyword, setSearchKeyword] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const formatAmount = (amount: number) => {
+    return Number(amount).toFixed(2);
+  };
+
+  const handleDelete = async () => {
+    if (!expenseToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .delete()
+        .eq("expense_id", expenseToDelete);
+
+      if (error) throw error;
+
+      setExpenses(expenses.filter(e => e.expense_id !== expenseToDelete));
+      toast({
+        title: "Expense deleted",
+        description: "The expense has been removed.",
+      });
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete expense",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setExpenseToDelete(null);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -126,15 +174,15 @@ export default function Expenses() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Total Expenses</div>
-          <div className="text-2xl font-bold">${totalExpenses.toLocaleString()}</div>
+          <div className="text-2xl font-bold">${formatAmount(totalExpenses)}</div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Reimbursable</div>
-          <div className="text-2xl font-bold text-warning">${reimbursableExpenses.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-warning">${formatAmount(reimbursableExpenses)}</div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Reimbursed</div>
-          <div className="text-2xl font-bold text-success">${reimbursedExpenses.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-success">${formatAmount(reimbursedExpenses)}</div>
         </Card>
       </div>
 
@@ -162,8 +210,8 @@ export default function Expenses() {
         <div className="space-y-2">
           {filteredExpenses.map((expense) => (
             <Card key={expense.expense_id} className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{expense.merchant}</span>
                     <Badge variant="outline">{expense.category}</Badge>
@@ -179,28 +227,66 @@ export default function Expenses() {
                     {format(parseISO(expense.date), "MMM d, yyyy")}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold">${expense.amount}</div>
-                  {expense.reimbursable && (
-                    <Badge
-                      variant="secondary"
-                      className={`text-xs mt-1 ${
-                        expense.reimbursed_status === "Fully reimbursed"
-                          ? "bg-success/20 text-success"
-                          : expense.reimbursed_status === "Not submitted"
-                          ? "bg-muted"
-                          : "bg-warning/20 text-warning"
-                      }`}
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="font-semibold">${formatAmount(expense.amount)}</div>
+                    {expense.reimbursable && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs mt-1 ${
+                          expense.reimbursed_status === "Fully reimbursed"
+                            ? "bg-success/20 text-success"
+                            : expense.reimbursed_status === "Not submitted"
+                            ? "bg-muted"
+                            : "bg-warning/20 text-warning"
+                        }`}
+                      >
+                        {expense.reimbursed_status}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/expenses/${expense.expense_id}/edit`)}
                     >
-                      {expense.reimbursed_status}
-                    </Badge>
-                  )}
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setExpenseToDelete(expense.expense_id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this expense? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
