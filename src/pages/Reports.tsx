@@ -29,7 +29,7 @@ interface Expense {
   payment_method: string;
 }
 
-// Helper function to compress images before embedding in PDF
+// Helper function to compress images before embedding in PDF to reduce file size
 const compressImage = (dataUrl: string, maxWidth: number, quality: number): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
