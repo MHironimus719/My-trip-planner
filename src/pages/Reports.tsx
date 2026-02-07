@@ -115,7 +115,7 @@ export default function Reports() {
     setLoading(false);
   };
 
-  const generatePDF = async () => {
+  const generatePDF = async (includeReceipts: boolean) => {
     if (!selectedTripId || expenses.length === 0) {
       toast({
         title: "No data to export",
@@ -128,6 +128,7 @@ export default function Reports() {
     const selectedTrip = trips.find((t) => t.trip_id === selectedTripId);
     if (!selectedTrip) return;
 
+    const reportType = includeReceipts ? "Detailed" : "Itemized";
     const pdf = new jsPDF();
     const pageWidth = pdf.internal.pageSize.getWidth();
     let yPos = 20;
@@ -197,7 +198,7 @@ export default function Reports() {
     pdf.setFontSize(20);
     pdf.setFont("helvetica", "bold");
     const titleX = logoWidth > 0 ? 15 + logoWidth + 5 : 15;
-    pdf.text("Detailed Expense Report", titleX, yPos);
+    pdf.text(`${reportType} Expense Report`, titleX, yPos);
     yPos += 15;
 
     // Trip info
@@ -280,97 +281,95 @@ export default function Reports() {
     pdf.text("TOTAL:", 120, yPos);
     pdf.text(`$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 165, yPos);
 
-    // Add receipt images section
-    const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
-    console.log("Expenses with receipts:", expensesWithReceipts.length);
-    
-    if (expensesWithReceipts.length > 0) {
-      pdf.addPage();
-      yPos = 20;
+    // Add receipt images section only for detailed report
+    if (includeReceipts) {
+      const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
+      console.log("Expenses with receipts:", expensesWithReceipts.length);
       
-      pdf.setFontSize(16);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Receipt Images", pageWidth / 2, yPos, { align: "center" });
-      yPos += 15;
-      
-      for (const expense of expensesWithReceipts) {
-        try {
-          console.log("Loading receipt for:", expense.merchant, expense.receipt_url);
-          
-          const receiptResponse = await fetch(expense.receipt_url!);
-          if (!receiptResponse.ok) {
-            throw new Error(`Failed to fetch receipt: ${receiptResponse.status}`);
+      if (expensesWithReceipts.length > 0) {
+        pdf.addPage();
+        yPos = 20;
+        
+        pdf.setFontSize(16);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Receipt Images", pageWidth / 2, yPos, { align: "center" });
+        yPos += 15;
+        
+        for (const expense of expensesWithReceipts) {
+          try {
+            console.log("Loading receipt for:", expense.merchant, expense.receipt_url);
+            
+            const receiptResponse = await fetch(expense.receipt_url!);
+            if (!receiptResponse.ok) {
+              throw new Error(`Failed to fetch receipt: ${receiptResponse.status}`);
+            }
+            
+            const receiptBlob = await receiptResponse.blob();
+            console.log("Receipt blob type:", receiptBlob.type);
+            
+            const receiptDataUrl = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(receiptBlob);
+            });
+            
+            // Compress the receipt image to reduce file size
+            const compressedReceipt = await compressImage(receiptDataUrl, 800, 0.7);
+            
+            // Calculate receipt image dimensions from compressed image
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = compressedReceipt;
+            });
+            
+            console.log("Compressed image loaded:", img.width, "x", img.height);
+            
+            const maxWidth = 170;
+            const maxHeight = 200;
+            let receiptWidth = maxWidth;
+            let receiptHeight = (img.height / img.width) * maxWidth;
+            
+            if (receiptHeight > maxHeight) {
+              receiptHeight = maxHeight;
+              receiptWidth = (img.width / img.height) * maxHeight;
+            }
+            
+            // Check if we need a new page
+            if (yPos + receiptHeight + 20 > 280) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            
+            // Add expense info
+            pdf.setFontSize(10);
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`${expense.merchant} - ${format(parseISO(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 15, yPos);
+            yPos += 7;
+            
+            // Add compressed receipt image (always JPEG after compression)
+            const xPos = (pageWidth - receiptWidth) / 2;
+            pdf.addImage(compressedReceipt, "JPEG", xPos, yPos, receiptWidth, receiptHeight);
+            yPos += receiptHeight + 15;
+            
+            console.log("Receipt added successfully");
+            
+          } catch (error) {
+            console.error("Error loading receipt for", expense.merchant, ":", error);
           }
-          
-          const receiptBlob = await receiptResponse.blob();
-          console.log("Receipt blob type:", receiptBlob.type);
-          
-          const receiptDataUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(receiptBlob);
-          });
-          
-          // Calculate receipt image dimensions
-          const img = new Image();
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = receiptDataUrl;
-          });
-          
-          console.log("Image loaded:", img.width, "x", img.height);
-          
-          const maxWidth = 170;
-          const maxHeight = 200;
-          let receiptWidth = maxWidth;
-          let receiptHeight = (img.height / img.width) * maxWidth;
-          
-          if (receiptHeight > maxHeight) {
-            receiptHeight = maxHeight;
-            receiptWidth = (img.width / img.height) * maxHeight;
-          }
-          
-          // Check if we need a new page
-          if (yPos + receiptHeight + 20 > 280) {
-            pdf.addPage();
-            yPos = 20;
-          }
-          
-          // Add expense info
-          pdf.setFontSize(10);
-          pdf.setFont("helvetica", "bold");
-          pdf.text(`${expense.merchant} - ${format(parseISO(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 15, yPos);
-          yPos += 7;
-          
-          // Detect image format from blob type or data URL
-          let imageFormat = "PNG";
-          if (receiptBlob.type.includes("jpeg") || receiptBlob.type.includes("jpg")) {
-            imageFormat = "JPEG";
-          } else if (receiptBlob.type.includes("png")) {
-            imageFormat = "PNG";
-          }
-          
-          // Add receipt image centered
-          const xPos = (pageWidth - receiptWidth) / 2;
-          pdf.addImage(receiptDataUrl, imageFormat, xPos, yPos, receiptWidth, receiptHeight);
-          yPos += receiptHeight + 15;
-          
-          console.log("Receipt added successfully");
-          
-        } catch (error) {
-          console.error("Error loading receipt for", expense.merchant, ":", error);
         }
       }
     }
 
-    // Save
-    const fileName = `${selectedTrip.trip_name.replace(/[^a-z0-9]/gi, "_")}_Expense_Report.pdf`;
+    // Save with appropriate filename
+    const reportTypeLabel = includeReceipts ? "Detailed" : "Itemized";
+    const fileName = `${selectedTrip.trip_name.replace(/[^a-z0-9]/gi, "_")}_${reportTypeLabel}_Expense_Report.pdf`;
     pdf.save(fileName);
 
     toast({
       title: "Report generated",
-      description: "Your expense report has been downloaded",
+      description: `Your ${reportType.toLowerCase()} expense report has been downloaded`,
     });
   };
 
@@ -384,10 +383,16 @@ export default function Reports() {
           <h2 className="text-3xl font-bold">Expense Reports</h2>
           <p className="text-muted-foreground mt-1">Generate detailed expense reports for your trips</p>
         </div>
-        <Button onClick={generatePDF} disabled={!selectedTripId || expenses.length === 0} className="gap-2">
-          <Download className="w-4 h-4" />
-          Download PDF
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => generatePDF(false)} disabled={!selectedTripId || expenses.length === 0} variant="outline" className="gap-2">
+            <FileText className="w-4 h-4" />
+            Itemized Report
+          </Button>
+          <Button onClick={() => generatePDF(true)} disabled={!selectedTripId || expenses.length === 0} className="gap-2">
+            <Download className="w-4 h-4" />
+            Detailed Report
+          </Button>
+        </div>
       </div>
 
       <Card className="p-6">
