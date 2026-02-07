@@ -244,10 +244,10 @@ export default function Reports() {
       }
 
       pdf.text(format(parseISO(expense.date), "MMM d"), 15, yPos);
-      pdf.text(expense.merchant.substring(0, 20), 40, yPos);
+    pdf.text(expense.merchant.substring(0, 20), 40, yPos);
       pdf.text(expense.category.substring(0, 15), 85, yPos);
       pdf.text(expense.payment_method?.substring(0, 15) || "N/A", 120, yPos);
-      pdf.text(`$${Number(expense.amount).toFixed(2)}`, 165, yPos);
+      pdf.text(`$${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 165, yPos);
 
       total += Number(expense.amount);
       yPos += 7;
@@ -255,10 +255,20 @@ export default function Reports() {
       if (expense.description) {
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
-        pdf.text(expense.description.substring(0, 60), 40, yPos);
+        // Wrap description text to fit within available width
+        const maxDescWidth = 150;
+        const wrappedDesc = pdf.splitTextToSize(expense.description, maxDescWidth);
+        for (const line of wrappedDesc) {
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          pdf.text(line, 40, yPos);
+          yPos += 4;
+        }
         pdf.setFontSize(10);
         pdf.setTextColor(0, 0, 0);
-        yPos += 5;
+        yPos += 1;
       }
     }
 
@@ -268,7 +278,7 @@ export default function Reports() {
     yPos += 7;
     pdf.setFont("helvetica", "bold");
     pdf.text("TOTAL:", 120, yPos);
-    pdf.text(`$${total.toFixed(2)}`, 165, yPos);
+    pdf.text(`$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 165, yPos);
 
     // Add receipt images section
     const expensesWithReceipts = expenses.filter(exp => exp.receipt_url);
@@ -330,7 +340,7 @@ export default function Reports() {
           // Add expense info
           pdf.setFontSize(10);
           pdf.setFont("helvetica", "bold");
-          pdf.text(`${expense.merchant} - ${format(parseISO(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toFixed(2)}`, 15, yPos);
+          pdf.text(`${expense.merchant} - ${format(parseISO(expense.date), "MMM d, yyyy")} - $${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 15, yPos);
           yPos += 7;
           
           // Detect image format from blob type or data URL
