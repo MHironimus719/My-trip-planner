@@ -8,9 +8,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ExpenseAssistantProps {
   onDataExtracted: (data: any) => void;
+  onImagesReady?: (images: string[]) => void;
 }
 
-export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
+export function ExpenseAssistant({ onDataExtracted, onImagesReady }: ExpenseAssistantProps) {
   const [text, setText] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -87,9 +88,11 @@ export function ExpenseAssistant({ onDataExtracted }: ExpenseAssistantProps) {
 
       onDataExtracted(data.data);
       
-      // Clear inputs after successful extraction
+      // Pass images to parent for storage upload, then clear text only
+      if (images.length > 0) {
+        onImagesReady?.(images);
+      }
       setText("");
-      setImages([]);
 
       toast({
         title: "Success",
