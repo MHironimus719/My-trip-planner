@@ -1,90 +1,107 @@
 
-## Fix PDF Expense Report Issues
+## Two Expense Report Types with Compressed Images
 
-### Problem Analysis
+### Overview
 
-1. **Column Cutoff**: "Business Card" shows as "Business Car" because payment method is truncated to 12 characters (line 219)
+Create two distinct PDF report options:
+1. **Itemized Expense Report** - Text-only expense table (no images)
+2. **Detailed Expense Report** - Includes compressed receipt images
 
-2. **Logo Too Large**: Currently 40x30mm positioned above the title
-
-3. **125MB File Size**: The company logo is embedded at its original full resolution. Even though it displays at 40x30mm, if the source image is 5000x5000 pixels, all those pixels are embedded as base64 in the PDF. jsPDF does not automatically resize source images.
+Both reports will use the existing `compressImage` helper to ensure file sizes stay under 500KB.
 
 ---
 
-### Solution
+### Changes to `src/pages/Reports.tsx`
 
-#### 1. Fix Column Layout
-- Increase payment method character limit from 12 to 15 characters
-- Adjust column X positions for better spacing:
+#### 1. Add Two Download Buttons
 
-| Column | Old X | New X |
-|--------|-------|-------|
-| Date | 15 | 15 |
-| Merchant | 45 | 40 |
-| Category | 95 | 85 |
-| Payment | 130 | 120 |
-| Amount | 170 | 165 |
+Replace the single "Download PDF" button with two buttons:
+- "Itemized Report" (no images, smaller file)
+- "Detailed Report" (with receipt images)
 
-#### 2. Smaller Logo, Inline with Title
-- Reduce logo max size from 40x30mm to 15x12mm
-- Position logo at left (x=15, y=20)
-- Position title to the right of logo on same line
-
-**New layout**:
 ```text
-[small logo] Detailed Expense Report
+[Download Itemized Report]  [Download Detailed Report]
 ```
 
-#### 3. Compress Logo Before Embedding
-Add a `compressImage` helper function that:
-- Uses HTML Canvas to resize the image
-- Limits maximum width to 200 pixels (plenty for a small PDF logo)
-- Converts to JPEG at 0.7 quality
-- Dramatically reduces file size (from megabytes to kilobytes)
+#### 2. Refactor `generatePDF` Function
+
+Split into two functions or add a parameter to control behavior:
+
+| Function | Title | Includes Receipts |
+|----------|-------|-------------------|
+| `generateItemizedPDF()` | "Itemized Expense Report" | No |
+| `generateDetailedPDF()` | "Detailed Expense Report" | Yes (compressed) |
+
+#### 3. Compress Receipt Images
+
+Apply the existing `compressImage` helper to receipt images before embedding:
 
 ```typescript
-const compressImage = (dataUrl: string, maxWidth: number, quality: number): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      
-      if (width > maxWidth) {
-        height = (height * maxWidth) / width;
-        width = maxWidth;
-      }
-      
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.src = dataUrl;
-  });
-};
+// Current code (uncompressed - causes large files):
+pdf.addImage(receiptDataUrl, imageFormat, xPos, yPos, receiptWidth, receiptHeight);
+
+// Updated code (compressed):
+const compressedReceipt = await compressImage(receiptDataUrl, 800, 0.7);
+pdf.addImage(compressedReceipt, "JPEG", xPos, yPos, receiptWidth, receiptHeight);
 ```
 
----
-
-### Files Changed
-
-**`src/pages/Reports.tsx`**:
-- Add `compressImage` helper function
-- Compress logo to max 200px width at 0.7 quality before adding to PDF
-- Reduce logo display size to 15x12mm
-- Position logo inline with title on the same Y position
-- Adjust column X positions for better spacing
-- Increase payment method truncation from 12 to 15 characters
+**Compression settings for receipts:**
+- Max width: 800px (sufficient for readability in PDF)
+- JPEG quality: 0.7 (good balance of quality vs size)
+- Always output as JPEG format for consistent compression
 
 ---
 
-### Expected Results
+### UI Updates
 
-| Issue | Before | After |
-|-------|--------|-------|
-| Payment column | "Business Car" | "Business Card" |
-| Logo size | 40x30mm, above title | 15x12mm, inline with title |
-| File size | ~125MB | Under 100KB |
+#### Download Buttons Section
+
+```text
+┌────────────────────────────────────────────────────────┐
+│  Expense Reports                                        │
+│  Generate detailed expense reports for your trips       │
+│                                                        │
+│  [📄 Itemized Report]  [📷 Detailed Report]            │
+└────────────────────────────────────────────────────────┘
+```
+
+- **Itemized Report**: Downloads quickly, very small file (~50-100KB)
+- **Detailed Report**: Takes longer (fetching/compressing images), but still under 500KB
+
+---
+
+### File Size Expectations
+
+| Report Type | Logo | Receipts | Expected Size |
+|-------------|------|----------|---------------|
+| Itemized | Compressed (200px, 0.7) | None | ~50-100KB |
+| Detailed | Compressed (200px, 0.7) | Compressed (800px, 0.7) | ~200-500KB |
+
+---
+
+### Technical Implementation
+
+**File**: `src/pages/Reports.tsx`
+
+1. Create `generatePDF(includeReceipts: boolean)` function with parameter
+2. Update title based on `includeReceipts`:
+   - `false` → "Itemized Expense Report"
+   - `true` → "Detailed Expense Report"
+3. Conditionally include receipt images section only when `includeReceipts` is true
+4. Apply `compressImage(receiptDataUrl, 800, 0.7)` to all receipt images
+5. Update file naming:
+   - `{TripName}_Itemized_Expense_Report.pdf`
+   - `{TripName}_Detailed_Expense_Report.pdf`
+6. Add two buttons in the UI that call the appropriate function
+
+---
+
+### Summary
+
+| Feature | Itemized Report | Detailed Report |
+|---------|-----------------|-----------------|
+| Expense table | ✓ | ✓ |
+| Descriptions (wrapped) | ✓ | ✓ |
+| Company logo | ✓ (compressed) | ✓ (compressed) |
+| Receipt images | ✗ | ✓ (compressed) |
+| Expected file size | ~50-100KB | ~200-500KB |
