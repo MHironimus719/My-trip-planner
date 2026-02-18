@@ -28,164 +28,135 @@ serve(async (req) => {
 
   try {
     const { flightNumber, flightDate } = await req.json();
-    
+
     if (!flightNumber) {
       return new Response(
-        JSON.stringify({ error: 'Flight number is required' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Flight number is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!flightDate) {
       return new Response(
-        JSON.stringify({ error: 'Flight date is required' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Flight date is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate flight number format
     if (!validateFlightNumber(flightNumber)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid flight number format. Expected format: AA123 or UAL1234' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Invalid flight number format. Expected format: AA123 or UAL1234' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Validate date format
     if (!validateFlightDate(flightDate)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid date format. Expected format: YYYY-MM-DD' }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'Invalid date format. Expected format: YYYY-MM-DD' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const AVIATIONSTACK_API_KEY = Deno.env.get('AVIATIONSTACK_API_KEY');
-    if (!AVIATIONSTACK_API_KEY) {
-      throw new Error('AVIATIONSTACK_API_KEY is not configured');
+    const AERODATABOX_API_KEY = Deno.env.get('AERODATABOX_API_KEY');
+    if (!AERODATABOX_API_KEY) {
+      throw new Error('AERODATABOX_API_KEY is not configured');
     }
 
-    // Sanitize inputs for URL use
     const sanitizedFlightNumber = encodeURIComponent(flightNumber.toUpperCase().trim());
     const sanitizedFlightDate = encodeURIComponent(flightDate.trim());
 
-    // Log without exposing API key
     console.log(`Fetching flight status for: ${sanitizedFlightNumber} on ${sanitizedFlightDate}`);
 
-    // Build URL - AviationStack API requires access_key as URL parameter (their API design)
-    // We mitigate log exposure risk by:
-    // 1. Using HTTPS (encrypts URL in transit)
-    // 2. Sanitizing all logs to never include the API key
-    // 3. Validating/sanitizing all inputs before use
-    const apiUrl = `https://api.aviationstack.com/v1/flights?access_key=${AVIATIONSTACK_API_KEY}&flight_iata=${sanitizedFlightNumber}&flight_date=${sanitizedFlightDate}`;
-    
+    // AeroDataBox API endpoint via API.Market
+    const apiUrl = `https://aerodatabox.p.rapidapi.com/flights/number/${sanitizedFlightNumber}/${sanitizedFlightDate}`;
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
+        'x-api-key': AERODATABOX_API_KEY,
+        'Accept': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      console.error('AviationStack API error:', response.status);
+    if (response.status === 404) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Failed to fetch flight data',
-          message: 'Unable to connect to flight data service. Please try again later or enter flight details manually.'
+        JSON.stringify({
+          error: 'No flight found',
+          message: 'Flight number not found for the given date. Try entering the flight information manually.',
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error('AeroDataBox API error:', response.status, body);
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to fetch flight data',
+          message: 'Unable to connect to flight data service. Please try again later or enter flight details manually.',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
     console.log('Flight data received successfully');
 
-    if (!data.data || data.data.length === 0) {
+    // AeroDataBox returns an array of flights
+    const flights = Array.isArray(data) ? data : [data];
+    if (!flights || flights.length === 0) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'No flight found',
-          message: 'Flight number not found. This may be because the flight is not currently active, or the free tier API has limited coverage. Try entering the flight information manually.'
+          message: 'No flight data available for this flight number and date. Try entering the flight information manually.',
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get the most recent flight
-    const flight = data.data[0];
+    const flight = flights[0];
 
-    // Helper function to strip timezone from ISO string to treat as local time
-    const stripTimezone = (isoString: string | null): string | null => {
-      if (!isoString) return null;
-      // Remove timezone offset (e.g., "+00:00" or "Z") to treat as local time
-      return isoString.replace(/[+-]\d{2}:\d{2}$/, '').replace(/Z$/, '');
-    };
-
-    // Format the response with relevant flight information
+    // Map AeroDataBox response to our FlightInfo shape
     const flightInfo = {
-      flightNumber: flight.flight?.iata || flightNumber,
+      flightNumber: flight.number || flightNumber,
       airline: flight.airline?.name || 'Unknown',
-      status: flight.flight_status || 'unknown',
+      status: flight.status || 'unknown',
       departure: {
-        airport: flight.departure?.airport || 'Unknown',
-        iata: flight.departure?.iata || '',
+        airport: flight.departure?.airport?.name || 'Unknown',
+        iata: flight.departure?.airport?.iata || '',
         terminal: flight.departure?.terminal || null,
         gate: flight.departure?.gate || null,
-        scheduledTime: stripTimezone(flight.departure?.scheduled),
-        estimatedTime: stripTimezone(flight.departure?.estimated),
-        actualTime: stripTimezone(flight.departure?.actual),
-        delay: flight.departure?.delay || null,
+        scheduledTime: flight.departure?.scheduledTime?.local || flight.departure?.scheduledTime?.utc || null,
+        estimatedTime: flight.departure?.revisedTime?.local || flight.departure?.revisedTime?.utc || null,
+        actualTime: flight.departure?.actualTime?.local || flight.departure?.actualTime?.utc || null,
+        delay: flight.departure?.delay ?? null,
       },
       arrival: {
-        airport: flight.arrival?.airport || 'Unknown',
-        iata: flight.arrival?.iata || '',
+        airport: flight.arrival?.airport?.name || 'Unknown',
+        iata: flight.arrival?.airport?.iata || '',
         terminal: flight.arrival?.terminal || null,
         gate: flight.arrival?.gate || null,
-        scheduledTime: stripTimezone(flight.arrival?.scheduled),
-        estimatedTime: stripTimezone(flight.arrival?.estimated),
-        actualTime: stripTimezone(flight.arrival?.actual),
-        delay: flight.arrival?.delay || null,
+        scheduledTime: flight.arrival?.scheduledTime?.local || flight.arrival?.scheduledTime?.utc || null,
+        estimatedTime: flight.arrival?.revisedTime?.local || flight.arrival?.revisedTime?.utc || null,
+        actualTime: flight.arrival?.actualTime?.local || flight.arrival?.actualTime?.utc || null,
+        delay: flight.arrival?.delay ?? null,
       },
       aircraft: {
-        type: flight.aircraft?.iata || null,
-      }
+        type: flight.aircraft?.model || null,
+      },
     };
 
     return new Response(
       JSON.stringify(flightInfo),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    // Sanitize error logging to prevent API key exposure
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const sanitizedError = errorMessage.replace(/access_key=[^&\s]+/gi, 'access_key=REDACTED');
-    console.error('Error in get-flight-status function:', sanitizedError);
+    console.error('Error in get-flight-status function:', errorMessage);
     return new Response(
-      JSON.stringify({ 
-        error: 'An error occurred while fetching flight status. Please try again.' 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: 'An error occurred while fetching flight status. Please try again.' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
