@@ -1,3 +1,4 @@
+import { compressImage } from "@/lib/imageCompression";
 import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,25 +23,29 @@ export function ExpenseAssistant({ onDataExtracted, onImagesReady }: ExpenseAssi
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newImages: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file.type.startsWith('image/')) continue;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          newImages.push(event.target.result as string);
-          if (newImages.length === files.length || i === files.length - 1) {
-            setImages((prev) => [...prev, ...newImages]);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const compressed = await Promise.all(
+      imageFiles.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+              try {
+                const result = await compressImage(event.target?.result as string);
+                resolve(result);
+              } catch (err) {
+                reject(err);
+              }
+            };
+            reader.onerror = () => reject(new Error("Failed to read file"));
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+    setImages((prev) => [...prev, ...compressed]);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -49,9 +54,14 @@ export function ExpenseAssistant({ onDataExtracted, onImagesReady }: ExpenseAssi
         const file = items[i].getAsFile();
         if (file) {
           const reader = new FileReader();
-          reader.onload = (event) => {
+          reader.onload = async (event) => {
             if (event.target?.result) {
-              setImages((prev) => [...prev, event.target.result as string]);
+              try {
+                const compressed = await compressImage(event.target.result as string);
+                setImages((prev) => [...prev, compressed]);
+              } catch {
+                setImages((prev) => [...prev, event.target!.result as string]);
+              }
             }
           };
           reader.readAsDataURL(file);
