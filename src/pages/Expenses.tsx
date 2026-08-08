@@ -18,7 +18,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format, parseISO } from "date-fns";
+
+const BULK_STATUSES = [
+  "Fully reimbursed",
+  "Partially reimbursed",
+  "Submitted",
+  "Not submitted",
+] as const;
 
 interface Expense {
   expense_id: string;
@@ -48,11 +62,49 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const formatAmount = (amount: number) => Number(amount).toFixed(2);
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const bulkUpdateStatus = async (status: (typeof BULK_STATUSES)[number]) => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .update({ reimbursed_status: status })
+        .in("expense_id", selectedIds);
+      if (error) throw error;
+
+      setExpenses((prev) =>
+        prev.map((e) =>
+          selectedIds.includes(e.expense_id) ? { ...e, reimbursed_status: status } : e
+        )
+      );
+      toast({
+        title: "Expenses updated",
+        description: `${selectedIds.length} expense${selectedIds.length === 1 ? "" : "s"} marked as ${status}.`,
+      });
+      setSelectedIds([]);
+    } catch (error) {
+      console.error("Error bulk updating expenses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update expenses",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
 
   const handleDelete = async () => {
     if (!expenseToDelete) return;
@@ -174,6 +226,13 @@ export default function Expenses() {
 
   const hasFilters = statusFilter !== "all" || tripFilter !== "all" || !!searchKeyword;
 
+  const allFilteredSelected =
+    filteredExpenses.length > 0 &&
+    filteredExpenses.every((e) => selectedIds.includes(e.expense_id));
+  const selectedTotal = filteredExpenses
+    .filter((e) => selectedIds.includes(e.expense_id))
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -259,10 +318,55 @@ export default function Expenses() {
         </Card>
       ) : (
         <div className="space-y-2">
+          <Card className="p-3 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={allFilteredSelected}
+                onCheckedChange={(v) =>
+                  setSelectedIds(v ? filteredExpenses.map((e) => e.expense_id) : [])
+                }
+                aria-label="Select all expenses"
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length > 0
+                  ? `${selectedIds.length} selected · $${formatAmount(selectedTotal)}`
+                  : "Select all"}
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                size="sm"
+                disabled={selectedIds.length === 0 || bulkUpdating}
+                onClick={() => bulkUpdateStatus("Fully reimbursed")}
+              >
+                Mark as reimbursed
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || bulkUpdating}>
+                    Set status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {BULK_STATUSES.map((s) => (
+                    <DropdownMenuItem key={s} onClick={() => bulkUpdateStatus(s)}>
+                      {s}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </Card>
           {filteredExpenses.map((expense) => (
             <Card key={expense.expense_id} className="p-4">
               <div className="flex items-center justify-between gap-4">
+                <Checkbox
+                  checked={selectedIds.includes(expense.expense_id)}
+                  onCheckedChange={() => toggleSelected(expense.expense_id)}
+                  aria-label={`Select expense ${expense.merchant}`}
+                />
                 <div className="flex-1 min-w-0">
+
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{expense.merchant}</span>
                     <Badge variant="outline">{expense.category}</Badge>
