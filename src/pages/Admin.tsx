@@ -177,9 +177,10 @@ export default function Admin() {
     }
   };
 
-  if (!isAdmin) {
+  if (!verifiedAdmin) {
     return null;
   }
+
 
   return (
     <div className="space-y-6">
