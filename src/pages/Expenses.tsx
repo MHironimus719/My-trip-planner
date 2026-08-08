@@ -311,10 +311,55 @@ export default function Expenses() {
         </Card>
       ) : (
         <div className="space-y-2">
+          <Card className="p-3 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={allFilteredSelected}
+                onCheckedChange={(v) =>
+                  setSelectedIds(v ? filteredExpenses.map((e) => e.expense_id) : [])
+                }
+                aria-label="Select all expenses"
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length > 0
+                  ? `${selectedIds.length} selected · $${formatAmount(selectedTotal)}`
+                  : "Select all"}
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                size="sm"
+                disabled={selectedIds.length === 0 || bulkUpdating}
+                onClick={() => bulkUpdateStatus("Fully reimbursed")}
+              >
+                Mark as reimbursed
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || bulkUpdating}>
+                    Set status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {BULK_STATUSES.map((s) => (
+                    <DropdownMenuItem key={s} onClick={() => bulkUpdateStatus(s)}>
+                      {s}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </Card>
           {filteredExpenses.map((expense) => (
             <Card key={expense.expense_id} className="p-4">
               <div className="flex items-center justify-between gap-4">
+                <Checkbox
+                  checked={selectedIds.includes(expense.expense_id)}
+                  onCheckedChange={() => toggleSelected(expense.expense_id)}
+                  aria-label={`Select expense ${expense.merchant}`}
+                />
                 <div className="flex-1 min-w-0">
+
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium">{expense.merchant}</span>
                     <Badge variant="outline">{expense.category}</Badge>
