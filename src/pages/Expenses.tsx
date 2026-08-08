@@ -18,7 +18,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ExpenseFilters } from "@/components/ExpenseFilters";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format, parseISO } from "date-fns";
+
+const BULK_STATUSES = [
+  "Fully reimbursed",
+  "Partially reimbursed",
+  "Submitted",
+  "Not submitted",
+] as const;
 
 interface Expense {
   expense_id: string;
