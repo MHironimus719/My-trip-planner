@@ -62,11 +62,49 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const formatAmount = (amount: number) => Number(amount).toFixed(2);
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const bulkUpdateStatus = async (status: string) => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .update({ reimbursed_status: status as Expense["reimbursed_status"] })
+        .in("expense_id", selectedIds);
+      if (error) throw error;
+
+      setExpenses((prev) =>
+        prev.map((e) =>
+          selectedIds.includes(e.expense_id) ? { ...e, reimbursed_status: status } : e
+        )
+      );
+      toast({
+        title: "Expenses updated",
+        description: `${selectedIds.length} expense${selectedIds.length === 1 ? "" : "s"} marked as ${status}.`,
+      });
+      setSelectedIds([]);
+    } catch (error) {
+      console.error("Error bulk updating expenses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update expenses",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
 
   const handleDelete = async () => {
     if (!expenseToDelete) return;
