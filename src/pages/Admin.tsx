@@ -28,7 +28,7 @@ interface Profile {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { isAdmin } = useSubscription();
+  useSubscription();
   const { toast } = useToast();
   
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -41,13 +41,43 @@ export default function Admin() {
     subscription_tier: "free" as SubscriptionTier,
   });
 
+  // Server-verified admin gate: never trust client-held role state alone.
+  const [verifiedAdmin, setVerifiedAdmin] = useState<boolean | null>(null);
+
   useEffect(() => {
-    if (!isAdmin) {
+    let cancelled = false;
+    const verifyAdmin = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) {
+        if (!cancelled) setVerifiedAdmin(false);
+        return;
+      }
+      // RLS restricts this to the caller's own roles.
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (cancelled) return;
+      setVerifiedAdmin(!error && !!data);
+    };
+    verifyAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (verifiedAdmin === null) return;
+    if (!verifiedAdmin) {
       navigate("/dashboard");
       return;
     }
     fetchProfiles();
-  }, [isAdmin, navigate]);
+  }, [verifiedAdmin, navigate]);
+
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -147,9 +177,10 @@ export default function Admin() {
     }
   };
 
-  if (!isAdmin) {
+  if (!verifiedAdmin) {
     return null;
   }
+
 
   return (
     <div className="space-y-6">
