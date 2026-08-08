@@ -73,13 +73,13 @@ export default function Expenses() {
   const toggleSelected = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const bulkUpdateStatus = async (status: string) => {
+  const bulkUpdateStatus = async (status: (typeof BULK_STATUSES)[number]) => {
     if (selectedIds.length === 0) return;
     setBulkUpdating(true);
     try {
       const { error } = await supabase
         .from("expenses")
-        .update({ reimbursed_status: status as Expense["reimbursed_status"] })
+        .update({ reimbursed_status: status })
         .in("expense_id", selectedIds);
       if (error) throw error;
 
