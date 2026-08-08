@@ -28,7 +28,7 @@ interface Profile {
 
 export default function Admin() {
   const navigate = useNavigate();
-  const { isAdmin } = useSubscription();
+  useSubscription();
   const { toast } = useToast();
   
   const [profiles, setProfiles] = useState<Profile[]>([]);
