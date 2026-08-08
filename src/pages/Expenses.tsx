@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, DollarSign, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, DollarSign, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -18,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ExpenseFilters } from "@/components/ExpenseFilters";
 import { format, parseISO } from "date-fns";
 
 interface Expense {
@@ -41,7 +41,10 @@ interface Trip {
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trips, setTrips] = useState<Record<string, Trip>>({});
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchKeyword, setSearchKeyword] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "all");
+  const [tripFilter, setTripFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -49,13 +52,11 @@ export default function Expenses() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const formatAmount = (amount: number) => {
-    return Number(amount).toFixed(2);
-  };
+  const formatAmount = (amount: number) => Number(amount).toFixed(2);
 
   const handleDelete = async () => {
     if (!expenseToDelete) return;
-    
+
     try {
       const { error } = await supabase
         .from("expenses")
@@ -64,7 +65,7 @@ export default function Expenses() {
 
       if (error) throw error;
 
-      setExpenses(expenses.filter(e => e.expense_id !== expenseToDelete));
+      setExpenses(expenses.filter((e) => e.expense_id !== expenseToDelete));
       toast({
         title: "Expense deleted",
         description: "The expense has been removed.",
@@ -99,7 +100,7 @@ export default function Expenses() {
       if (tripsResult.error) throw tripsResult.error;
 
       setExpenses(expensesResult.data || []);
-      
+
       const tripsMap = (tripsResult.data || []).reduce((acc, trip) => {
         acc[trip.trip_id] = trip;
         return acc;
@@ -112,29 +113,66 @@ export default function Expenses() {
     }
   };
 
+  const updateStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    const next = new URLSearchParams(searchParams);
+    if (value === "all") next.delete("status");
+    else next.set("status", value);
+    setSearchParams(next, { replace: true });
+  };
+
+  const matchesStatus = (exp: Expense) => {
+    switch (statusFilter) {
+      case "all":
+        return true;
+      case "pending":
+        return exp.reimbursable && exp.reimbursed_status !== "Fully reimbursed";
+      case "non-reimbursable":
+        return !exp.reimbursable;
+      default:
+        return exp.reimbursed_status === statusFilter;
+    }
+  };
+
   const filteredExpenses = expenses.filter((exp) => {
+    if (!matchesStatus(exp)) return false;
+    if (tripFilter !== "all" && exp.trip_id !== tripFilter) return false;
     if (!searchKeyword) return true;
-    
+
     const keyword = searchKeyword.toLowerCase();
     const trip = trips[exp.trip_id];
-    
-    // Search across trip name, event/client name, city, and expense category
+
     const tripName = trip?.trip_name?.toLowerCase() || "";
     const eventName = trip?.client_or_event?.toLowerCase() || "";
     const city = trip?.city?.toLowerCase() || "";
     const category = exp.category?.toLowerCase() || "";
-    
-    return tripName.includes(keyword) || 
-           eventName.includes(keyword) || 
-           city.includes(keyword) || 
-           category.includes(keyword);
+    const merchant = exp.merchant?.toLowerCase() || "";
+
+    return (
+      tripName.includes(keyword) ||
+      eventName.includes(keyword) ||
+      city.includes(keyword) ||
+      category.includes(keyword) ||
+      merchant.includes(keyword)
+    );
   });
 
   const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
-  const reimbursableExpenses = filteredExpenses.filter((exp) => exp.reimbursable).reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const reimbursableExpenses = filteredExpenses
+    .filter((exp) => exp.reimbursable)
+    .reduce((sum, exp) => sum + Number(exp.amount), 0);
+  const pendingTotal = filteredExpenses
+    .filter((exp) => exp.reimbursable && exp.reimbursed_status !== "Fully reimbursed")
+    .reduce((sum, exp) => sum + Number(exp.amount), 0);
   const reimbursedExpenses = filteredExpenses
     .filter((exp) => exp.reimbursed_status === "Fully reimbursed")
     .reduce((sum, exp) => sum + Number(exp.amount), 0);
+
+  const tripOptions = Object.values(trips)
+    .filter((t) => expenses.some((e) => e.trip_id === t.trip_id))
+    .sort((a, b) => a.trip_name.localeCompare(b.trip_name));
+
+  const hasFilters = statusFilter !== "all" || tripFilter !== "all" || !!searchKeyword;
 
   if (loading) {
     return (
@@ -159,19 +197,25 @@ export default function Expenses() {
         </Link>
       </div>
 
-      <Card className="p-4">
-        <div className="flex items-center gap-3">
-          <Search className="w-5 h-5 text-muted-foreground" />
-          <Input
-            placeholder="Search by trip name, event, city, or expense type..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            className="flex-1"
-          />
-        </div>
-      </Card>
+      <ExpenseFilters
+        searchKeyword={searchKeyword}
+        onSearchChange={setSearchKeyword}
+        statusFilter={statusFilter}
+        onStatusChange={updateStatusFilter}
+        tripFilter={tripFilter}
+        onTripChange={setTripFilter}
+        tripOptions={tripOptions}
+        shownCount={filteredExpenses.length}
+        totalCount={expenses.length}
+        hasFilters={hasFilters}
+        onClear={() => {
+          updateStatusFilter("all");
+          setTripFilter("all");
+          setSearchKeyword("");
+        }}
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Total Expenses</div>
           <div className="text-2xl font-bold">${formatAmount(totalExpenses)}</div>
@@ -179,6 +223,13 @@ export default function Expenses() {
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Reimbursable</div>
           <div className="text-2xl font-bold text-warning">${formatAmount(reimbursableExpenses)}</div>
+        </Card>
+        <Card
+          className="p-6 cursor-pointer transition-colors hover:bg-muted/50"
+          onClick={() => updateStatusFilter("pending")}
+        >
+          <div className="text-sm text-muted-foreground mb-1">Pending Reimbursement</div>
+          <div className="text-2xl font-bold text-accent">${formatAmount(pendingTotal)}</div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground mb-1">Reimbursed</div>
@@ -193,10 +244,10 @@ export default function Expenses() {
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-xl font-semibold">
-              {searchKeyword ? "No matching expenses" : "No expenses yet"}
+              {hasFilters ? "No matching expenses" : "No expenses yet"}
             </h3>
             <p className="text-muted-foreground">
-              {searchKeyword ? "Try adjusting your search keywords" : "Start tracking your trip expenses"}
+              {hasFilters ? "Try adjusting your filters or search keywords" : "Start tracking your trip expenses"}
             </p>
             <Link to="/expenses/new">
               <Button className="mt-4">
@@ -225,6 +276,7 @@ export default function Expenses() {
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
                     {format(parseISO(expense.date), "MMM d, yyyy")}
+                    {trips[expense.trip_id]?.city ? ` · ${trips[expense.trip_id].city}` : ""}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

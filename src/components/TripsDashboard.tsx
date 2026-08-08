@@ -4,9 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calendar, Receipt } from "lucide-react";
 import { parseISO } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export function TripsDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [kpis, setKpis] = useState({
     unpaidInvoices: 0,
     ytdPaidInvoices: 0,
@@ -120,6 +122,7 @@ export function TripsDashboard() {
       icon: Receipt,
       color: "text-accent",
       bgColor: "bg-accent/10",
+      onClick: () => navigate("/expenses?status=pending"),
     },
     {
       title: "Upcoming Trips",
@@ -147,7 +150,11 @@ export function TripsDashboard() {
       {kpiCards.map((kpi) => {
         const Icon = kpi.icon;
         return (
-          <Card key={kpi.title} className="p-6">
+          <Card
+            key={kpi.title}
+            onClick={kpi.onClick}
+            className={`p-6 ${kpi.onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
+          >
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{kpi.title}</p>
