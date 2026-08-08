@@ -226,6 +226,13 @@ export default function Expenses() {
 
   const hasFilters = statusFilter !== "all" || tripFilter !== "all" || !!searchKeyword;
 
+  const allFilteredSelected =
+    filteredExpenses.length > 0 &&
+    filteredExpenses.every((e) => selectedIds.includes(e.expense_id));
+  const selectedTotal = filteredExpenses
+    .filter((e) => selectedIds.includes(e.expense_id))
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
