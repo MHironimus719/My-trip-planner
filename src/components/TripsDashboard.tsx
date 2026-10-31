@@ -195,27 +195,76 @@ export function TripsDashboard() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
-      {kpiCards.map((kpi) => {
-        const Icon = kpi.icon;
-        return (
-          <Card
-            key={kpi.title}
-            onClick={kpi.onClick}
-            className={`p-6 ${kpi.onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{kpi.title}</p>
-                <p className="text-2xl font-bold">{kpi.value}</p>
+    <>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+        {kpiCards.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <Card
+              key={kpi.title}
+              onClick={kpi.onClick}
+              className={`p-6 ${kpi.onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{kpi.title}</p>
+                  <p className="text-2xl font-bold">{kpi.value}</p>
+                </div>
+                <div className={`${kpi.bgColor} p-3 rounded-lg`}>
+                  <Icon className={`w-5 h-5 ${kpi.color}`} />
+                </div>
               </div>
-              <div className={`${kpi.bgColor} p-3 rounded-lg`}>
-                <Icon className={`w-5 h-5 ${kpi.color}`} />
-              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Dialog open={drilldown !== null} onOpenChange={(open) => !open && setDrilldown(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{drilldown ? drilldownConfig[drilldown].title : ""}</DialogTitle>
+          </DialogHeader>
+          {drilldown && (
+            <div className="space-y-2">
+              {drilldownConfig[drilldown].trips.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  No trips in this category.
+                </p>
+              ) : (
+                drilldownConfig[drilldown].trips.map((trip) => (
+                  <Card
+                    key={trip.trip_id}
+                    className="p-4 cursor-pointer transition-colors hover:bg-muted/50"
+                    onClick={() => {
+                      setDrilldown(null);
+                      navigate(`/trips/${trip.trip_id}`);
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{trip.trip_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {format(parseISO(trip.beginning_date), "MMM d, yyyy")} –{" "}
+                          {format(parseISO(trip.ending_date), "MMM d, yyyy")}
+                          {trip.city ? ` · ${trip.city}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold">
+                          ${Number(trip.fee || 0).toLocaleString()}
+                        </p>
+                        {trip.cancelled && (
+                          <p className="text-xs text-destructive">Cancelled</p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
             </div>
-          </Card>
-        );
-      })}
-    </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
