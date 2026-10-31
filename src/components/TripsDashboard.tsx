@@ -92,6 +92,7 @@ export function TripsDashboard() {
 
       console.log(`Total upcoming trips count: ${upcomingTrips}`);
 
+      setTrips(trips || []);
       setKpis({
         unpaidInvoices,
         ytdPaidInvoices,
