@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { oauthReturnPath } from "@/lib/oauth-return-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,13 +20,15 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const returnTo = oauthReturnPath(params.get("next"));
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate(returnTo !== "/" ? returnTo : "/dashboard");
     }
-  }, [user, navigate]);
+  }, [user, navigate, returnTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +43,12 @@ export default function Auth() {
           fullName: fullName.trim(),
         });
 
-        const { error } = await signUp(validatedData.email, validatedData.password, validatedData.fullName);
+        const { error } = await signUp(
+          validatedData.email,
+          validatedData.password,
+          validatedData.fullName,
+          `${window.location.origin}${returnTo}`
+        );
         if (error) {
           toast({
             variant: "destructive",
