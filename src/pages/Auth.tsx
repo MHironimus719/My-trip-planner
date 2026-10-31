@@ -43,7 +43,12 @@ export default function Auth() {
           fullName: fullName.trim(),
         });
 
-        const { error } = await signUp(validatedData.email, validatedData.password, validatedData.fullName);
+        const { error } = await signUp(
+          validatedData.email,
+          validatedData.password,
+          validatedData.fullName,
+          `${window.location.origin}${returnTo}`
+        );
         if (error) {
           toast({
             variant: "destructive",
