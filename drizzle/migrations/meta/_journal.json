@@ -8,6 +8,13 @@
       "when": 1793484398036,
       "tag": "0000_add_return_flight_calendar_event_id",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793488419681,
+      "tag": "0001_add_contract_signed_to_trips",
+      "breakpoints": true
     }
   ]
 }

@@ -227,6 +227,8 @@ export type Database = {
           car_rental_company: string | null
           city: string | null
           client_or_event: string | null
+          contract_signed: boolean
+          contract_signed_date: string | null
           country: string | null
           created_at: string | null
           departure_time: string | null
@@ -279,6 +281,8 @@ export type Database = {
           car_rental_company?: string | null
           city?: string | null
           client_or_event?: string | null
+          contract_signed?: boolean
+          contract_signed_date?: string | null
           country?: string | null
           created_at?: string | null
           departure_time?: string | null
@@ -331,6 +335,8 @@ export type Database = {
           car_rental_company?: string | null
           city?: string | null
           client_or_event?: string | null
+          contract_signed?: boolean
+          contract_signed_date?: string | null
           country?: string | null
           created_at?: string | null
           departure_time?: string | null
