@@ -20,13 +20,15 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const returnTo = oauthReturnPath(params.get("next"));
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate(returnTo !== "/" ? returnTo : "/dashboard");
     }
-  }, [user, navigate]);
+  }, [user, navigate, returnTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
