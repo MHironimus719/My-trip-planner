@@ -21,9 +21,9 @@ export default defineTool({
       .describe("Include cancelled trips (default false)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
-  handler: async ({ limit, include_cancelled }) => {
+  handler: async ({ limit, include_cancelled }, ctx) => {
     const max = limit ?? 20;
-    const supabase = supabaseForUser(globalThis.__mcpToolContext!);
+    const supabase = supabaseForUser(ctx);
 
     let query = supabase
       .from("trips")

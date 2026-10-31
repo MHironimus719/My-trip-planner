@@ -33,8 +33,8 @@ export default defineTool({
       .describe("Maximum number of expenses to return (default 25, max 100)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
-  handler: async ({ trip_id, reimbursed_status, limit }) => {
-    const supabase = supabaseForUser(globalThis.__mcpToolContext!);
+  handler: async ({ trip_id, reimbursed_status, limit }, ctx) => {
+    const supabase = supabaseForUser(ctx);
 
     let query = supabase
       .from("expenses")

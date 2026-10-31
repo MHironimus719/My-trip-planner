@@ -11,8 +11,8 @@ export default defineTool({
     trip_id: z.string().uuid().describe("The trip's ID (from list_trips)."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true },
-  handler: async ({ trip_id }) => {
-    const supabase = supabaseForUser(globalThis.__mcpToolContext!);
+  handler: async ({ trip_id }, ctx) => {
+    const supabase = supabaseForUser(ctx);
 
     const [{ data: trip, error: tripError }, { data: items, error: itemsError }] =
       await Promise.all([
