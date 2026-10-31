@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.80.0";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3';
+import { syncReturnFlight } from './return-flight.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,13 +10,19 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !supabaseKey) throw new Error('Calendar configuration missing');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get user from JWT
     const authHeader = req.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
+    if (!token || !authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
@@ -28,7 +32,15 @@ serve(async (req) => {
       );
     }
 
-    const { tripId, action, itineraryItemId } = await req.json();
+    const parsed = z.object({
+      tripId: z.string().uuid(),
+      action: z.enum(['create', 'update', 'delete', 'sync_itinerary_item', 'delete_itinerary_item']),
+      itineraryItemId: z.string().uuid().optional(),
+    }).safeParse(await req.json());
+    if (!parsed.success) return new Response(JSON.stringify({ error: 'Invalid calendar request' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    const { tripId, action, itineraryItemId } = parsed.data;
 
     // Check if calendar is connected (from profiles table)
     const { data: profile, error: profileError } = await supabase
@@ -65,7 +77,7 @@ serve(async (req) => {
     if (expiresAt <= new Date()) {
       // Token expired, need to refresh
       const refreshResponse = await supabase.functions.invoke('refresh-google-token', {
-        headers: { authorization: authHeader! }
+        headers: { authorization: authHeader }
       });
       
       if (refreshResponse.error) {
@@ -99,6 +111,15 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const syncReturn = async (operation: 'create' | 'update' | 'delete') => {
+      await syncReturnFlight(trip, operation, accessToken, async (eventId) => {
+        const { error } = await supabase.from('trips')
+          .update({ google_calendar_return_event_id: eventId })
+          .eq('trip_id', tripId).eq('user_id', user.id);
+        if (error) throw new Error('Failed to save return flight calendar event');
+      });
+    };
 
     if (action === 'create' || action === 'update') {
       // Calculate adjusted end date (Google Calendar treats end dates as exclusive for all-day events)
@@ -188,7 +209,7 @@ serve(async (req) => {
       let url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
       // If updating and we have an event ID, use PATCH to update existing event
-      if (action === 'update' && trip.google_calendar_event_id) {
+      if (trip.google_calendar_event_id) {
         method = 'PATCH';
         url = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${trip.google_calendar_event_id}`;
       }
@@ -221,6 +242,8 @@ serve(async (req) => {
           .eq('trip_id', tripId);
       }
 
+      await syncReturn(action);
+
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -231,7 +254,9 @@ serve(async (req) => {
       );
     }
 
-    if (action === 'delete' && trip.google_calendar_event_id) {
+    if (action === 'delete') {
+      await syncReturn('delete');
+      if (trip.google_calendar_event_id) {
       // Delete calendar event
       const calendarResponse = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events/${trip.google_calendar_event_id}`,
@@ -257,6 +282,7 @@ serve(async (req) => {
         .from('trips')
         .update({ google_calendar_event_id: null })
         .eq('trip_id', tripId);
+      }
 
       return new Response(
         JSON.stringify({ 
