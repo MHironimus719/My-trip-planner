@@ -568,10 +568,12 @@ export default function TripForm() {
           <h3 className="text-lg font-semibold">Status</h3>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="flex items-center justify-between">
+            <div className="flex min-h-10 items-center gap-4 md:pt-7">
               <Label htmlFor="invoice_sent">Invoice Sent</Label>
+              <span className="ml-auto text-sm text-muted-foreground">{formData.invoice_sent ? "Yes" : "No"}</span>
               <Switch
                 id="invoice_sent"
+                className="data-[state=unchecked]:border-muted-foreground [&>span]:bg-primary-foreground"
                 checked={formData.invoice_sent}
                 onCheckedChange={(checked) => setFormData({ ...formData, invoice_sent: checked })}
               />
@@ -587,19 +589,12 @@ export default function TripForm() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <Label htmlFor="paid">Paid</Label>
-              <Switch
-                id="paid"
-                checked={formData.paid}
-                onCheckedChange={(checked) => setFormData({ ...formData, paid: checked })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
+            <div className="flex min-h-10 items-center gap-4 md:pt-7">
               <Label htmlFor="contract_signed">Contract Signed</Label>
+              <span className="ml-auto text-sm text-muted-foreground">{formData.contract_signed ? "Yes" : "No"}</span>
               <Switch
                 id="contract_signed"
+                className="data-[state=unchecked]:border-muted-foreground [&>span]:bg-primary-foreground"
                 checked={formData.contract_signed}
                 onCheckedChange={(checked) =>
                   setFormData({
@@ -619,6 +614,17 @@ export default function TripForm() {
                 value={formData.contract_signed_date}
                 onChange={(e) => setFormData({ ...formData, contract_signed_date: e.target.value })}
                 disabled={!formData.contract_signed}
+              />
+            </div>
+
+            <div className="flex min-h-10 items-center gap-4 md:pt-7">
+              <Label htmlFor="paid">Paid</Label>
+              <span className="ml-auto text-sm text-muted-foreground">{formData.paid ? "Yes" : "No"}</span>
+              <Switch
+                id="paid"
+                className="data-[state=unchecked]:border-muted-foreground [&>span]:bg-primary-foreground"
+                checked={formData.paid}
+                onCheckedChange={(checked) => setFormData({ ...formData, paid: checked })}
               />
             </div>
 
