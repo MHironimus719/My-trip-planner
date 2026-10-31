@@ -242,6 +242,13 @@ export default function TripDetail() {
               ) : (
                 <Badge variant="secondary">Not Paid</Badge>
               )}
+              {trip.contract_signed ? (
+                <Badge className="bg-success text-success-foreground">
+                  Contract Signed{trip.contract_signed_date ? ` ${format(parseISO(trip.contract_signed_date), "MMM d, yyyy")}` : ""}
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Contract Not Signed</Badge>
+              )}
               {trip.expenses_reimbursed_status === "Yes" && (
                 <Badge className="bg-success text-success-foreground">Fully Reimbursed</Badge>
               )}

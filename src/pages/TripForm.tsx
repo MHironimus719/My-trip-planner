@@ -51,6 +51,8 @@ export default function TripForm() {
     invoice_sent: false,
     invoice_number: "",
     paid: false,
+    contract_signed: false,
+    contract_signed_date: "",
     flight_needed: false,
     airline: "",
     flight_number: "",
@@ -159,6 +161,8 @@ export default function TripForm() {
           invoice_sent: data.invoice_sent || false,
           invoice_number: data.invoice_number || "",
           paid: data.paid || false,
+          contract_signed: data.contract_signed || false,
+          contract_signed_date: data.contract_signed_date || "",
           flight_needed: data.flight_needed || false,
           airline: data.airline || "",
           flight_number: data.flight_number || "",
@@ -265,6 +269,7 @@ export default function TripForm() {
         car_dropoff_datetime: formData.car_dropoff_datetime ? formData.car_dropoff_datetime + ':00' : null,
         hotel_checkin_date: formData.hotel_checkin_date || null,
         hotel_checkout_date: formData.hotel_checkout_date || null,
+        contract_signed_date: formData.contract_signed ? formData.contract_signed_date || null : null,
         timezone: formData.timezone,
         user_id: user.id,
       };
@@ -588,6 +593,32 @@ export default function TripForm() {
                 id="paid"
                 checked={formData.paid}
                 onCheckedChange={(checked) => setFormData({ ...formData, paid: checked })}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="contract_signed">Contract Signed</Label>
+              <Switch
+                id="contract_signed"
+                checked={formData.contract_signed}
+                onCheckedChange={(checked) =>
+                  setFormData({
+                    ...formData,
+                    contract_signed: checked,
+                    contract_signed_date: checked ? formData.contract_signed_date : "",
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contract_signed_date">Contract Signed Date</Label>
+              <Input
+                id="contract_signed_date"
+                type="date"
+                value={formData.contract_signed_date}
+                onChange={(e) => setFormData({ ...formData, contract_signed_date: e.target.value })}
+                disabled={!formData.contract_signed}
               />
             </div>
 
