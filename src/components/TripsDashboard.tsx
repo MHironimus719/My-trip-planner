@@ -3,8 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Calendar, Receipt } from "lucide-react";
-import { parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Trip = Tables<"trips">;
+type DrilldownKey = "unpaid" | "ytdPaid" | "ytdContract" | "upcoming";
 
 export function TripsDashboard() {
   const { user } = useAuth();
@@ -16,6 +26,8 @@ export function TripsDashboard() {
     pendingReimbursements: 0,
     upcomingTrips: 0,
   });
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [drilldown, setDrilldown] = useState<DrilldownKey | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
