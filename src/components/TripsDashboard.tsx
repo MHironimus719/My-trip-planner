@@ -107,6 +107,38 @@ export function TripsDashboard() {
     }
   };
 
+  const currentYear = new Date().getFullYear();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const drilldownConfig: Record<DrilldownKey, { title: string; trips: Trip[] }> = {
+    unpaid: {
+      title: "Unpaid Invoices",
+      trips: trips.filter((t) => t.invoice_sent && !t.paid),
+    },
+    ytdPaid: {
+      title: "YTD Paid Invoices",
+      trips: trips.filter(
+        (t) => parseISO(t.beginning_date).getFullYear() === currentYear && t.paid
+      ),
+    },
+    ytdContract: {
+      title: "YTD Under Contract",
+      trips: trips.filter(
+        (t) =>
+          parseISO(t.beginning_date).getFullYear() === currentYear &&
+          !t.paid &&
+          !t.cancelled
+      ),
+    },
+    upcoming: {
+      title: "Upcoming Trips",
+      trips: trips.filter(
+        (t) => parseISO(t.beginning_date) >= today && !t.cancelled
+      ),
+    },
+  };
+
   const kpiCards = [
     {
       title: "Unpaid Invoices",
@@ -114,6 +146,7 @@ export function TripsDashboard() {
       icon: Receipt,
       color: "text-warning",
       bgColor: "bg-warning/10",
+      onClick: () => setDrilldown("unpaid"),
     },
     {
       title: "YTD Paid Invoices",
@@ -121,6 +154,7 @@ export function TripsDashboard() {
       icon: DollarSign,
       color: "text-success",
       bgColor: "bg-success/10",
+      onClick: () => setDrilldown("ytdPaid"),
     },
     {
       title: "YTD Under Contract",
@@ -128,6 +162,7 @@ export function TripsDashboard() {
       icon: TrendingUp,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      onClick: () => setDrilldown("ytdContract"),
     },
     {
       title: "Pending Reimbursements",
@@ -143,6 +178,7 @@ export function TripsDashboard() {
       icon: Calendar,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      onClick: () => setDrilldown("upcoming"),
     },
   ];
 
