@@ -1,6 +1,6 @@
 # Tasks
 
-- [ ] Make dashboard totals explicit buttons and verify all four trip lists and trip navigation while signed in.
+- [x] Make dashboard totals explicit buttons and verify all four trip lists and trip navigation while signed in.
 
 - [x] Add a separately tracked return-flight event to Google Calendar sync, with return departure/arrival and confirmation details.
 - [x] Validate event creation, updates, and removal with automated tests; deploy the calendar sync function.
