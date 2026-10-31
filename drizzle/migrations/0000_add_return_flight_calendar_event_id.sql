@@ -1,0 +1,2 @@
+ALTER TABLE public.trips ADD COLUMN IF NOT EXISTS google_calendar_return_event_id text;
+COMMENT ON COLUMN public.trips.google_calendar_return_event_id IS 'Google Calendar event ID for the separate return flight event.';
