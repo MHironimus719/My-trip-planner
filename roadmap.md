@@ -1,6 +1,6 @@
 # Tasks
 
-- [ ] Improve trip status alignment and switch visibility; verify desktop and mobile display.
+- [x] Improve trip status alignment and switch visibility; verified signed-in desktop/mobile display and toggle/date interaction without saving test changes.
 
 - [x] Make dashboard totals explicit buttons and verify all four trip lists and trip navigation while signed in.
 
