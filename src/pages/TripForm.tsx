@@ -597,6 +597,27 @@ export default function TripForm() {
             </div>
 
             <div className="flex min-h-10 items-center gap-4 md:pt-7">
+              <Label htmlFor="invoice_sent">Invoice Sent</Label>
+              <span className="ml-auto text-sm text-muted-foreground">{formData.invoice_sent ? "Yes" : "No"}</span>
+              <Switch
+                id="invoice_sent"
+                className="data-[state=unchecked]:border-muted-foreground [&>span]:bg-primary-foreground"
+                checked={formData.invoice_sent}
+                onCheckedChange={(checked) => setFormData({ ...formData, invoice_sent: checked })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="invoice_number">Invoice Number</Label>
+              <Input
+                id="invoice_number"
+                value={formData.invoice_number}
+                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                disabled={!formData.invoice_sent}
+              />
+            </div>
+
+            <div className="flex min-h-10 items-center gap-4 md:pt-7">
               <Label htmlFor="paid">Paid</Label>
               <span className="ml-auto text-sm text-muted-foreground">{formData.paid ? "Yes" : "No"}</span>
               <Switch
