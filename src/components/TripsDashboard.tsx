@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { DollarSign, TrendingUp, Calendar, Receipt } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -200,27 +201,31 @@ export function TripsDashboard() {
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <Card
+            <Button
               key={kpi.title}
+              type="button"
+              variant="outline"
+              aria-label={kpi.title}
+              aria-haspopup={kpi.title === "Pending Reimbursements" ? undefined : "dialog"}
               onClick={kpi.onClick}
-              className={`p-6 ${kpi.onClick ? "cursor-pointer transition-colors hover:bg-muted/50" : ""}`}
+              className="h-auto w-full min-w-0 justify-start whitespace-normal rounded-lg border bg-card p-6 text-left text-card-foreground shadow-sm hover:bg-muted/50"
             >
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{kpi.title}</p>
-                  <p className="text-2xl font-bold">{kpi.value}</p>
-                </div>
-                <div className={`${kpi.bgColor} p-3 rounded-lg`}>
+              <span className="flex w-full items-start justify-between gap-2">
+                <span className="min-w-0 space-y-2">
+                  <span className="block text-sm font-normal text-muted-foreground">{kpi.title}</span>
+                  <span className="block text-2xl font-bold">{kpi.value}</span>
+                </span>
+                <span className={`${kpi.bgColor} shrink-0 p-3 rounded-lg`}>
                   <Icon className={`w-5 h-5 ${kpi.color}`} />
-                </div>
-              </div>
-            </Card>
+                </span>
+              </span>
+            </Button>
           );
         })}
       </div>
 
       <Dialog open={drilldown !== null} onOpenChange={(open) => !open && setDrilldown(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent aria-describedby={undefined} className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{drilldown ? drilldownConfig[drilldown].title : ""}</DialogTitle>
           </DialogHeader>
