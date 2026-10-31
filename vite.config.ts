@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(), 
+    react(),
+    mcpPlugin(),
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
