@@ -240,6 +240,7 @@ export type Database = {
           flight_needed: boolean | null
           flight_number: string | null
           google_calendar_event_id: string | null
+          google_calendar_return_event_id: string | null
           hotel_address: string | null
           hotel_booking_service: string | null
           hotel_checkin_date: string | null
@@ -291,6 +292,7 @@ export type Database = {
           flight_needed?: boolean | null
           flight_number?: string | null
           google_calendar_event_id?: string | null
+          google_calendar_return_event_id?: string | null
           hotel_address?: string | null
           hotel_booking_service?: string | null
           hotel_checkin_date?: string | null
@@ -342,6 +344,7 @@ export type Database = {
           flight_needed?: boolean | null
           flight_number?: string | null
           google_calendar_event_id?: string | null
+          google_calendar_return_event_id?: string | null
           hotel_address?: string | null
           hotel_booking_service?: string | null
           hotel_checkin_date?: string | null

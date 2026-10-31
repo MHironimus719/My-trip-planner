@@ -27,18 +27,18 @@ export default function TripDetail() {
     }
   }, [tripId]);
 
-  // Sync trip to calendar when first loaded (for newly created trips)
+  // Backfill a separate return event when an existing trip is opened.
   useEffect(() => {
-    // Only sync if trip is loaded, has no calendar event, and we have a tripId
-    // Use a ref to prevent double-syncing in StrictMode
-    if (trip && !trip.google_calendar_event_id && tripId && !loading) {
-      console.log('Syncing newly created trip to calendar');
-      syncTripToCalendar(tripId, 'create').catch(err => {
+    const hasReturn = trip && [trip.return_airline, trip.return_flight_number,
+      trip.return_departure_time, trip.return_arrival_time, trip.return_flight_confirmation].some(Boolean);
+    if (trip && tripId && !loading && (!trip.google_calendar_event_id ||
+        (hasReturn && !trip.google_calendar_return_event_id))) {
+      syncTripToCalendar(tripId, trip.google_calendar_event_id ? 'update' : 'create').catch(err => {
         console.error('Failed to sync trip to calendar:', err);
         // Don't let calendar sync failures affect the page
       });
     }
-  }, [trip?.google_calendar_event_id, tripId, loading]);
+  }, [trip?.google_calendar_event_id, trip?.google_calendar_return_event_id, tripId, loading]);
 
   const fetchTripData = async () => {
     setLoading(true);
