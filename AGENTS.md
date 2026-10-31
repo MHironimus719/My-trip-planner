@@ -2,3 +2,6 @@
 
 - Keep return-flight calendar event building and lifecycle handling in `supabase/functions/sync-calendar/return-flight.ts` so the separately tracked event is independently testable and deploys with the function.
 - Use a deterministic trip-derived Google event ID for return flights to prevent duplicate events from overlapping background sync requests; persist it separately from the all-day trip event.
+- Keep the MCP server in `src/lib/mcp/` (one `defineTool` per file, registered in `index.ts`); it is generated into `supabase/functions/mcp/` at build — never hand-edit that generated file. Every MCP change requires manifest extraction plus app publish; existing published revision keeps serving until then.
+- MCP database access always uses the caller's verified OAuth token via `supabaseForUser` (RLS-scoped); never service-role keys or widened anon policies. Auth config: `auth.oauth.issuer` with the direct Supabase auth issuer and `requireOAuthClientClaim: true`.
+- The OAuth consent route is `/.lovable/oauth/consent` (`src/pages/OAuthConsent.tsx`); every sign-in path (password sign-in, signup `emailRedirectTo`) must preserve and consume the `next` param through `oauthReturnPath()` so the consent flow is never lost.
