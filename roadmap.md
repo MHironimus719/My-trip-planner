@@ -1,5 +1,8 @@
 # Tasks
 
+- [x] Provide conditional GrokBot OAuth/MCP connection guidance and clarify the existing read-only tools.
+- [ ] Verify exact GrokBot connection steps; waiting for the user's product URL or connection-settings screenshot.
+
 - [x] Improve trip status alignment and switch visibility; verified signed-in desktop/mobile display and toggle/date interaction without saving test changes.
 
 - [x] Make dashboard totals explicit buttons and verify all four trip lists and trip navigation while signed in.
